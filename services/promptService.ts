@@ -46,14 +46,15 @@ Output ONLY the final result. No markdown conversational filler.
 `;
 
 export const generateEnhancedPrompt = async (
+  apiKey: string,
   draftIdea: string,
   config: PromptConfig,
   modelId: string = 'gemini-2.5-flash',
   baseSystemPrompt: string = DEFAULT_BASE_SYSTEM_PROMPT
 ): Promise<string> => {
   
-  // Note: API Key must be available in process.env.API_KEY as per instructions
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  // Use the provided user API key
+  const ai = new GoogleGenAI({ apiKey });
 
   // 1. Construct a Structured Parameter Block
   // This converts the boolean/enum config into clear, capitalised instructions for the LLM.
@@ -89,7 +90,7 @@ Based on the [CONFIGURATION PARAMETERS] and your Persona, rewrite the [DRAFT IDE
       contents: combinedUserContent,
       config: {
         systemInstruction: fullSystemInstruction,
-        // We do not use JSON schema here as the output is a prompt string (or potentially JSON string if timing is on, but usually plain text prompt)
+        // We do not use JSON schema here as the output is a prompt string
       }
     });
 

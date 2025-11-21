@@ -154,13 +154,20 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
         addToast("Please enter a draft idea first", "warning");
         return;
     }
+
+    const apiKey = getActiveKey();
+    if (!apiKey) {
+      addToast(t.gen_no_key, 'error');
+      return;
+    }
     
     setIsEnhancing(true);
     try {
         const active = promptTemplates.find(pt => pt.id === activePromptTemplateId);
         const metaPrompt = active ? active.template : DEFAULT_BASE_SYSTEM_PROMPT;
 
-        const enhanced = await generateEnhancedPrompt(draftIdea, promptConfig, enhancerModel, metaPrompt);
+        // Pass the apiKey explicitly
+        const enhanced = await generateEnhancedPrompt(apiKey, draftIdea, promptConfig, enhancerModel, metaPrompt);
         setPrompt(enhanced);
         addToast("Prompt generated and applied!", "success");
     } catch (error: any) {

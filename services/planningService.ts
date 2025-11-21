@@ -3,12 +3,14 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { DirectorScene } from "../types";
 
 export const generateScenePlan = async (
+  apiKey: string,
   idea: string,
   count: number,
   systemPrompt?: string // Custom Director Persona
 ): Promise<DirectorScene[]> => {
   
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  // Use the provided user API key
+  const ai = new GoogleGenAI({ apiKey });
 
   // Use custom prompt if provided, otherwise fallback (though App should provide default)
   const baseInstruction = systemPrompt || `You are an expert Film Director.`;

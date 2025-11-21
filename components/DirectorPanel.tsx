@@ -75,7 +75,8 @@ const DirectorPanel: React.FC<DirectorPanelProps> = ({
       const selectedTemplate = directorTemplates.find(tmpl => tmpl.id === activeTemplateId);
       const systemPrompt = selectedTemplate?.systemPrompt;
 
-      const scenes = await generateScenePlan(directorIdea, directorCount, systemPrompt);
+      // Pass the active API key explicitly
+      const scenes = await generateScenePlan(activeKey.key, directorIdea, directorCount, systemPrompt);
       
       const scenesWithImage = scenes.map(s => ({
           ...s,
