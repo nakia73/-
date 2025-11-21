@@ -444,6 +444,7 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
           />
         ) : (
           <>
+            {/* Mode Specific Inputs */}
             {mode === 'image-to-video' && (
               <div className="space-y-4">
                 <div className="space-y-1">
@@ -499,30 +500,30 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
                     />
                     </div>
                 )}
-
-                {/* Advanced Prompt Settings Panel (Refactored) */}
-                <AdvancedSettingsPanel 
-                  t={t}
-                  showAdvancedSettings={showAdvancedSettings}
-                  setShowAdvancedSettings={setShowAdvancedSettings}
-                  
-                  draftIdea={draftIdea}
-                  setDraftIdea={setDraftIdea}
-                  enhancerModel={enhancerModel}
-                  setEnhancerModel={setEnhancerModel}
-                  isEnhancing={isEnhancing}
-                  handleEnhancePrompt={handleEnhancePrompt}
-                  
-                  promptConfig={promptConfig}
-                  setPromptConfig={setPromptConfig}
-                  
-                  activePromptTemplateName={promptTemplates.find(t => t.id === activePromptTemplateId)?.name || 'Meta Prompt'}
-                  onOpenMetaModal={() => setShowMetaModal(true)}
-                  
-                  mode={mode}
-                />
               </div>
             )}
+
+            {/* Advanced Prompt Settings Panel (Shared for Text & Image modes) */}
+            <AdvancedSettingsPanel 
+              t={t}
+              showAdvancedSettings={showAdvancedSettings}
+              setShowAdvancedSettings={setShowAdvancedSettings}
+              
+              draftIdea={draftIdea}
+              setDraftIdea={setDraftIdea}
+              enhancerModel={enhancerModel}
+              setEnhancerModel={setEnhancerModel}
+              isEnhancing={isEnhancing}
+              handleEnhancePrompt={handleEnhancePrompt}
+              
+              promptConfig={promptConfig}
+              setPromptConfig={setPromptConfig}
+              
+              activePromptTemplateName={promptTemplates.find(t => t.id === activePromptTemplateId)?.name || 'Meta Prompt'}
+              onOpenMetaModal={() => setShowMetaModal(true)}
+              
+              mode={mode}
+            />
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
