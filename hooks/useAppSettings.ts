@@ -13,6 +13,7 @@ interface UseAppSettingsProps {
 }
 
 export const useAppSettings = ({ user, apiKeys, importKeys }: UseAppSettingsProps) => {
+  const [geminiApiKey, setGeminiApiKey] = useState<string>('');
   const [suppressQualityWarning, setSuppressQualityWarning] = useState(false);
   const [enableLocalHistory, setEnableLocalHistory] = useState(false);
   
@@ -32,6 +33,7 @@ export const useAppSettings = ({ user, apiKeys, importKeys }: UseAppSettingsProp
     const fetchSettings = async () => {
       try {
         const settings = await loadSettings(user?.id);
+        setGeminiApiKey(settings.geminiApiKey || '');
         setSuppressQualityWarning(settings.suppressQualityWarning || false);
         setEnableLocalHistory(settings.enableLocalHistory || false);
         
@@ -62,6 +64,7 @@ export const useAppSettings = ({ user, apiKeys, importKeys }: UseAppSettingsProp
     try {
       const settings = {
         apiKeys,
+        geminiApiKey,
         suppressQualityWarning,
         enableLocalHistory,
         directorTemplates,
@@ -124,6 +127,7 @@ export const useAppSettings = ({ user, apiKeys, importKeys }: UseAppSettingsProp
   };
 
   return {
+    geminiApiKey, setGeminiApiKey,
     suppressQualityWarning, setSuppressQualityWarning,
     enableLocalHistory, setEnableLocalHistory,
     

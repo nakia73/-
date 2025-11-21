@@ -52,6 +52,7 @@ export const translations = {
     gen_uploading: "Uploading...",
     gen_processing_img: "Formatting for Sora...",
     gen_no_key: "Active API Key required. Please configure in Settings.",
+    gen_no_gemini_key: "Gemini API Key required for prompt generation.",
     
     // Advanced Prompt Config
     adv_title: "Prompt Engineering & Config",
@@ -139,9 +140,15 @@ export const translations = {
     api_title: "Settings & Cluster",
     api_desc: "Configure global settings and API processing nodes.",
     api_section_general: "Global Configuration",
+    api_section_llm: "LLM Configuration (Gemini)",
     api_section_cluster: "Sonic-GEN API Cluster (Veo & Sora)",
     api_get_key: "Get API Key",
     
+    api_gemini_label: "Google Gemini API Key",
+    api_gemini_placeholder: "Enter Gemini API Key (starts with AIza...)",
+    api_gemini_desc: "Required for Prompt Generation and Director Mode planning.",
+    api_gemini_link: "Get Gemini Key",
+
     api_node: "NODE",
     api_running: "RUNNING",
     api_offline: "OFFLINE",
@@ -219,6 +226,7 @@ export const translations = {
     gen_uploading: "アップロード中...",
     gen_processing_img: "Sora用に整形中...",
     gen_no_key: "有効なAPIキーが必要です。設定画面を確認してください。",
+    gen_no_gemini_key: "プロンプト生成にはGemini APIキーが必要です。",
 
     // Advanced Prompt Config
     adv_title: "プロンプト工学 & 生成設定",
@@ -306,8 +314,14 @@ export const translations = {
     api_title: "設定 & クラスタ管理",
     api_desc: "全体設定および並列処理ノードの設定を行います。",
     api_section_general: "全体設定",
+    api_section_llm: "LLM 設定 (Gemini)",
     api_section_cluster: "Sonic-GEN API クラスタ (Veo & Sora)",
     api_get_key: "キーを取得",
+    
+    api_gemini_label: "Google Gemini API キー",
+    api_gemini_placeholder: "Gemini API キーを入力 (AIza...)",
+    api_gemini_desc: "プロンプト生成およびディレクターモードの計画作成に必要です。",
+    api_gemini_link: "Geminiキーを取得",
     
     api_node: "ノード",
     api_running: "実行中",

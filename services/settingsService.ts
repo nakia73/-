@@ -5,6 +5,7 @@ import { encrypt, decrypt } from '../lib/encryption';
 import { DEFAULT_BASE_SYSTEM_PROMPT } from './promptService';
 
 const LOCAL_STORAGE_KEYS_KEY = 'veo_api_keys';
+const LOCAL_STORAGE_GEMINI_KEY = 'veo_gemini_key'; // New storage key
 const LOCAL_STORAGE_WARN_KEY = 'veo_suppress_warn';
 const LOCAL_STORAGE_HISTORY_KEY = 'veo_local_history';
 const LOCAL_STORAGE_TEMPLATES_KEY = 'veo_director_templates';
@@ -65,6 +66,7 @@ const DEFAULT_PROMPT_TEMPLATES: PromptTemplate[] = [
 const getLocalSettings = async (): Promise<AppSettings> => {
   const suppressWarning = localStorage.getItem(LOCAL_STORAGE_WARN_KEY) === 'true';
   const enableLocalHistory = localStorage.getItem(LOCAL_STORAGE_HISTORY_KEY) === 'true';
+  const geminiApiKey = localStorage.getItem(LOCAL_STORAGE_GEMINI_KEY) || '';
   
   const keysJson = localStorage.getItem(LOCAL_STORAGE_KEYS_KEY);
   const dirTemplatesJson = localStorage.getItem(LOCAL_STORAGE_TEMPLATES_KEY);
@@ -114,6 +116,7 @@ const getLocalSettings = async (): Promise<AppSettings> => {
 
   return {
     apiKeys,
+    geminiApiKey,
     suppressQualityWarning: suppressWarning,
     enableLocalHistory,
     directorTemplates,
@@ -126,6 +129,9 @@ const getLocalSettings = async (): Promise<AppSettings> => {
 
 export const saveLocalSettings = (settings: AppSettings) => {
   localStorage.setItem(LOCAL_STORAGE_KEYS_KEY, JSON.stringify(settings.apiKeys));
+  if (settings.geminiApiKey !== undefined) {
+      localStorage.setItem(LOCAL_STORAGE_GEMINI_KEY, settings.geminiApiKey);
+  }
   localStorage.setItem(LOCAL_STORAGE_WARN_KEY, String(settings.suppressQualityWarning));
   localStorage.setItem(LOCAL_STORAGE_HISTORY_KEY, String(settings.enableLocalHistory));
   
@@ -157,15 +163,21 @@ export const loadSettings = async (userId?: string): Promise<AppSettings> => {
     if (data && data.settings) {
       const cloudSettings = data.settings as AppSettings;
       
-      // Decrypt API Keys
+      // Decrypt Kie API Keys
       const decryptedKeys = await Promise.all(cloudSettings.apiKeys.map(async (k) => ({
           ...k,
           key: k.key ? await decrypt(k.key, ENCRYPTION_SECRET) : ''
       })));
 
+      // Decrypt Gemini Key
+      const decryptedGeminiKey = cloudSettings.geminiApiKey 
+          ? await decrypt(cloudSettings.geminiApiKey, ENCRYPTION_SECRET) 
+          : '';
+
       const decryptedSettings = {
           ...cloudSettings,
           apiKeys: decryptedKeys,
+          geminiApiKey: decryptedGeminiKey,
           directorTemplates: cloudSettings.directorTemplates || DEFAULT_DIRECTOR_TEMPLATES,
           activeTemplateId: cloudSettings.activeTemplateId || 'tmpl_cinematic',
           promptTemplates: cloudSettings.promptTemplates || DEFAULT_PROMPT_TEMPLATES,
@@ -190,14 +202,21 @@ export const saveCloudSettings = async (userId: string, settings: AppSettings) =
   }
 
   try {
+    // Encrypt Kie Keys
     const encryptedKeys = await Promise.all(settings.apiKeys.map(async (k) => ({
         ...k,
         key: k.key ? await encrypt(k.key, ENCRYPTION_SECRET) : ''
     })));
 
+    // Encrypt Gemini Key
+    const encryptedGeminiKey = settings.geminiApiKey 
+        ? await encrypt(settings.geminiApiKey, ENCRYPTION_SECRET) 
+        : '';
+
     const secureSettings = {
         ...settings,
-        apiKeys: encryptedKeys
+        apiKeys: encryptedKeys,
+        geminiApiKey: encryptedGeminiKey
     };
 
     const { error } = await supabase

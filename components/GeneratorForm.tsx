@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { VideoSettings, ApiKeyData, Translation, DirectorTemplate, PromptConfig, PromptTemplate } from '../types';
 import { uploadFileToKie } from '../services/uploadService';
@@ -12,6 +13,7 @@ interface GeneratorFormProps {
   onAddToQueue: (prompt: string, startImageUrl: string | null, endImageUrl: string | null, settings: VideoSettings, promptConfig?: PromptConfig) => void;
   queueLength: number;
   apiKeys: ApiKeyData[];
+  geminiApiKey?: string; // New Prop
   suppressQualityWarning: boolean;
   setSuppressQualityWarning: (suppress: boolean) => void;
   handleSaveSettings: () => Promise<void>;
@@ -38,7 +40,7 @@ interface GeneratorFormProps {
 type GenerationMode = 'text-to-video' | 'image-to-video' | 'director';
 
 const GeneratorForm: React.FC<GeneratorFormProps> = ({ 
-  onAddToQueue, queueLength, apiKeys, 
+  onAddToQueue, queueLength, apiKeys, geminiApiKey,
   suppressQualityWarning, setSuppressQualityWarning, handleSaveSettings,
   
   directorTemplates, activeTemplateId, setActiveTemplateId, addTemplate, updateTemplate, deleteTemplate,
@@ -155,9 +157,11 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
         return;
     }
 
-    const apiKey = getActiveKey();
+    // Use explicitly provided Gemini Key, fallback to active Kie key if user insists on using that as proxy
+    // But warning: Prompt Service uses Google GenAI SDK directly, so it needs a REAL Google Key.
+    const apiKey = geminiApiKey; 
     if (!apiKey) {
-      addToast(t.gen_no_key, 'error');
+      addToast(t.gen_no_gemini_key || "Gemini API Key required in Settings.", 'error');
       return;
     }
     
@@ -430,6 +434,7 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
         {mode === 'director' ? (
           <DirectorPanel 
             apiKeys={apiKeys}
+            geminiApiKey={geminiApiKey}
             settings={settings}
             onExecuteBatch={handleDirectorExecuteBatch}
             

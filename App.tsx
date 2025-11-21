@@ -30,6 +30,7 @@ const VeoStudioApp: React.FC = () => {
   
   // App Settings (Persist & Sync)
   const { 
+    geminiApiKey, setGeminiApiKey,
     suppressQualityWarning, setSuppressQualityWarning,
     enableLocalHistory, setEnableLocalHistory: setSettingsHistory,
     
@@ -70,6 +71,8 @@ const VeoStudioApp: React.FC = () => {
         onClose={() => setKeyManagerOpen(false)}
         apiKeys={apiKeys}
         onUpdateKey={addKey}
+        geminiApiKey={geminiApiKey}
+        onUpdateGeminiKey={setGeminiApiKey}
         onRefreshCredits={refreshAllCredits}
         enableLocalHistory={enableLocalHistory}
         onUpdateLocalHistory={setSettingsHistory}
@@ -95,6 +98,7 @@ const VeoStudioApp: React.FC = () => {
            onAddToQueue={addToQueue}
            queueLength={tasks.filter(t => t.status === 'pending').length}
            apiKeys={apiKeys} 
+           geminiApiKey={geminiApiKey}
            suppressQualityWarning={suppressQualityWarning}
            setSuppressQualityWarning={setSuppressQualityWarning}
            handleSaveSettings={handleSaveSettings}

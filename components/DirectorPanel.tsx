@@ -7,6 +7,7 @@ import { useToast } from './ToastContext';
 
 interface DirectorPanelProps {
   apiKeys: ApiKeyData[];
+  geminiApiKey?: string; // Dedicated Key
   settings: VideoSettings;
   onExecuteBatch: (scenes: DirectorScene[]) => void;
   
@@ -23,7 +24,7 @@ interface DirectorPanelProps {
 type DirectorState = 'input' | 'planning' | 'review';
 
 const DirectorPanel: React.FC<DirectorPanelProps> = ({ 
-  apiKeys, settings, onExecuteBatch, 
+  apiKeys, geminiApiKey, settings, onExecuteBatch, 
   directorTemplates, activeTemplateId, setActiveTemplateId, addTemplate, updateTemplate, deleteTemplate,
   t 
 }) => {
@@ -64,9 +65,10 @@ const DirectorPanel: React.FC<DirectorPanelProps> = ({
   };
 
   const handleDirectorPlan = async () => {
-    const activeKey = apiKeys.find(k => k.key.length > 0 && k.status !== 'error');
-    if (!activeKey) {
-      addToast(t.gen_no_key, "error");
+    // Use dedicated Gemini Key
+    const apiKey = geminiApiKey;
+    if (!apiKey) {
+      addToast(t.gen_no_gemini_key || "Gemini API Key required.", "error");
       return;
     }
 
@@ -76,7 +78,7 @@ const DirectorPanel: React.FC<DirectorPanelProps> = ({
       const systemPrompt = selectedTemplate?.systemPrompt;
 
       // Pass the active API key explicitly
-      const scenes = await generateScenePlan(activeKey.key, directorIdea, directorCount, systemPrompt);
+      const scenes = await generateScenePlan(apiKey, directorIdea, directorCount, systemPrompt);
       
       const scenesWithImage = scenes.map(s => ({
           ...s,

@@ -5,6 +5,8 @@ import { ApiKeyData, Translation } from '../types';
 interface ApiKeyManagerProps {
   apiKeys: ApiKeyData[];
   onUpdateKey: (index: number, key: string, label: string) => void;
+  geminiApiKey?: string;
+  onUpdateGeminiKey?: (key: string) => void;
   onRefreshCredits?: () => Promise<void>;
   enableLocalHistory: boolean;
   onUpdateLocalHistory: (enable: boolean) => void;
@@ -18,12 +20,18 @@ interface ApiKeyManagerProps {
 }
 
 const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ 
-  apiKeys, onUpdateKey, onRefreshCredits,
+  apiKeys, onUpdateKey, geminiApiKey = '', onUpdateGeminiKey, onRefreshCredits,
   enableLocalHistory, onUpdateLocalHistory,
   onSave, isSaving, userEmail,
   isOpen, onClose, onOpenAuth, t 
 }) => {
   const [refreshing, setRefreshing] = useState(false);
+  const [localGeminiKey, setLocalGeminiKey] = useState(geminiApiKey);
+
+  // Sync prop change
+  useEffect(() => {
+    setLocalGeminiKey(geminiApiKey);
+  }, [geminiApiKey]);
 
   // Auto refresh on open
   useEffect(() => {
@@ -42,6 +50,11 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({
       } finally {
           setRefreshing(false);
       }
+  };
+
+  const handleGeminiChange = (val: string) => {
+      setLocalGeminiKey(val);
+      if (onUpdateGeminiKey) onUpdateGeminiKey(val);
   };
 
   const existingLabels = Array.from(new Set(
@@ -143,26 +156,53 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({
              </div>
           </div>
 
-          <div className="bg-black/20 rounded-xl border border-white/5 p-4">
-             <h3 className="text-sm font-bold text-secondary mb-4 uppercase tracking-wider flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                {t.api_section_general}
-             </h3>
-             <div className="grid grid-cols-1 gap-4">
-                {/* Local History Toggle */}
-                <div className="flex items-center justify-between bg-surfaceHighlight/30 p-3 rounded-lg border border-white/5">
-                    <div>
-                        <h4 className="text-sm font-medium text-gray-300">{t.api_local_hist_label}</h4>
-                        <p className="text-xs text-gray-500 mt-1">{t.api_local_hist_desc}</p>
+          {/* General & LLM Settings */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-black/20 rounded-xl border border-white/5 p-4">
+                <h3 className="text-sm font-bold text-secondary mb-4 uppercase tracking-wider flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    {t.api_section_general}
+                </h3>
+                <div className="space-y-4">
+                    {/* Local History Toggle */}
+                    <div className="flex items-center justify-between bg-surfaceHighlight/30 p-3 rounded-lg border border-white/5">
+                        <div>
+                            <h4 className="text-sm font-medium text-gray-300">{t.api_local_hist_label}</h4>
+                            <p className="text-xs text-gray-500 mt-1">{t.api_local_hist_desc}</p>
+                        </div>
+                        <button 
+                        onClick={() => onUpdateLocalHistory(!enableLocalHistory)}
+                        className={`w-12 h-6 rounded-full p-1 transition-colors ${enableLocalHistory ? 'bg-primary' : 'bg-gray-700'}`}
+                        >
+                            <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${enableLocalHistory ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                        </button>
                     </div>
-                    <button 
-                      onClick={() => onUpdateLocalHistory(!enableLocalHistory)}
-                      className={`w-12 h-6 rounded-full p-1 transition-colors ${enableLocalHistory ? 'bg-primary' : 'bg-gray-700'}`}
-                    >
-                        <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${enableLocalHistory ? 'translate-x-6' : 'translate-x-0'}`}></div>
-                    </button>
                 </div>
-             </div>
+              </div>
+
+              <div className="bg-black/20 rounded-xl border border-white/5 p-4">
+                <div className="flex justify-between items-start mb-4">
+                    <h3 className="text-sm font-bold text-purple-400 uppercase tracking-wider flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                        {t.api_section_llm}
+                    </h3>
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-xs text-purple-400 hover:underline flex items-center gap-1">
+                        {t.api_gemini_link}
+                    </a>
+                </div>
+                
+                <div className="space-y-2">
+                     <label className="block text-xs font-medium text-gray-300">{t.api_gemini_label}</label>
+                     <input
+                        type="password"
+                        value={localGeminiKey}
+                        onChange={(e) => handleGeminiChange(e.target.value)}
+                        placeholder={t.api_gemini_placeholder}
+                        className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none font-mono"
+                     />
+                     <p className="text-[10px] text-gray-500">{t.api_gemini_desc}</p>
+                </div>
+              </div>
           </div>
 
           <div>

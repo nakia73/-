@@ -89,6 +89,7 @@ export interface PromptTemplate {
 
 export interface AppSettings {
   apiKeys: ApiKeyData[];
+  geminiApiKey?: string; // Dedicated key for LLM (Prompt Gen / Director)
   suppressQualityWarning: boolean;
   enableLocalHistory: boolean; // New setting for IndexedDB
   
