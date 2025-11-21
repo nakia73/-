@@ -1,0 +1,9 @@
+{
+  "name": "Sonic-GEN",
+  "description": "Create cinematic AI videos using Google's Veo 3 and OpenAI's Sora 2 models via Kie.ai.",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "@google/genai": "*"
+  },
+  "requestFramePermissions": []
+}
