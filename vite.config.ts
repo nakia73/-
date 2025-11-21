@@ -12,6 +12,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, (process as any).cwd(), '');
 
   return {
+    base: './', // GitHub Pagesのサブディレクトリ対策（必須）
     plugins: [react()],
     resolve: {
       alias: {
