@@ -57,7 +57,13 @@ const DEFAULT_PROMPT_TEMPLATES: PromptTemplate[] = [
 const getLocalSettings = async (): Promise<AppSettings> => {
   const suppressWarning = localStorage.getItem(LOCAL_STORAGE_WARN_KEY) === 'true';
   const enableLocalHistory = localStorage.getItem(LOCAL_STORAGE_HISTORY_KEY) === 'true';
-  const geminiApiKey = localStorage.getItem(LOCAL_STORAGE_GEMINI_KEY) || '';
+  
+  // Decrypt Gemini Key from Local Storage
+  const encryptedGeminiKey = localStorage.getItem(LOCAL_STORAGE_GEMINI_KEY) || '';
+  let geminiApiKey = '';
+  if (encryptedGeminiKey) {
+      geminiApiKey = await decrypt(encryptedGeminiKey, ENCRYPTION_SECRET);
+  }
   
   const keysJson = localStorage.getItem(LOCAL_STORAGE_KEYS_KEY);
   const dirTemplatesJson = localStorage.getItem(LOCAL_STORAGE_TEMPLATES_KEY);
@@ -69,9 +75,14 @@ const getLocalSettings = async (): Promise<AppSettings> => {
   let apiKeys: ApiKeyData[] = [];
   if (keysJson) {
     try {
-      apiKeys = JSON.parse(keysJson);
+      const parsedKeys = JSON.parse(keysJson);
+      // Decrypt Local Keys
+      apiKeys = await Promise.all(parsedKeys.map(async (k: any) => ({
+          ...k,
+          key: k.key ? await decrypt(k.key, ENCRYPTION_SECRET) : ''
+      })));
     } catch (e) {
-      console.error("Failed to parse local keys", e);
+      console.error("Failed to parse/decrypt local keys", e);
     }
   }
 
@@ -118,11 +129,19 @@ const getLocalSettings = async (): Promise<AppSettings> => {
   };
 };
 
-export const saveLocalSettings = (settings: AppSettings) => {
-  localStorage.setItem(LOCAL_STORAGE_KEYS_KEY, JSON.stringify(settings.apiKeys));
+export const saveLocalSettings = async (settings: AppSettings) => {
+  // Encrypt Keys before saving to Local Storage
+  const encryptedKeys = await Promise.all(settings.apiKeys.map(async (k) => ({
+      ...k,
+      key: k.key ? await encrypt(k.key, ENCRYPTION_SECRET) : ''
+  })));
+  localStorage.setItem(LOCAL_STORAGE_KEYS_KEY, JSON.stringify(encryptedKeys));
+
   if (settings.geminiApiKey !== undefined) {
-      localStorage.setItem(LOCAL_STORAGE_GEMINI_KEY, settings.geminiApiKey);
+      const encryptedGemini = await encrypt(settings.geminiApiKey, ENCRYPTION_SECRET);
+      localStorage.setItem(LOCAL_STORAGE_GEMINI_KEY, encryptedGemini);
   }
+
   localStorage.setItem(LOCAL_STORAGE_WARN_KEY, String(settings.suppressQualityWarning));
   localStorage.setItem(LOCAL_STORAGE_HISTORY_KEY, String(settings.enableLocalHistory));
   
@@ -154,13 +173,13 @@ export const loadSettings = async (userId?: string): Promise<AppSettings> => {
     if (data && data.settings) {
       const cloudSettings = data.settings as AppSettings;
       
-      // Decrypt Kie API Keys
+      // Decrypt Kie API Keys (Cloud)
       const decryptedKeys = await Promise.all(cloudSettings.apiKeys.map(async (k) => ({
           ...k,
           key: k.key ? await decrypt(k.key, ENCRYPTION_SECRET) : ''
       })));
 
-      // Decrypt Gemini Key
+      // Decrypt Gemini Key (Cloud)
       const decryptedGeminiKey = cloudSettings.geminiApiKey 
           ? await decrypt(cloudSettings.geminiApiKey, ENCRYPTION_SECRET) 
           : '';
@@ -175,7 +194,8 @@ export const loadSettings = async (userId?: string): Promise<AppSettings> => {
           activePromptTemplateId: cloudSettings.activePromptTemplateId || 'pt_sora_expert'
       };
 
-      saveLocalSettings(decryptedSettings);
+      // Save to local storage (now encrypted by saveLocalSettings)
+      await saveLocalSettings(decryptedSettings);
       return decryptedSettings;
     }
   } catch (e) {
@@ -186,20 +206,21 @@ export const loadSettings = async (userId?: string): Promise<AppSettings> => {
 };
 
 export const saveCloudSettings = async (userId: string, settings: AppSettings) => {
-  saveLocalSettings(settings);
+  // Save locally first (Encrypts automatically)
+  await saveLocalSettings(settings);
 
   if (!userId || userId === 'local-fallback') {
     return;
   }
 
   try {
-    // Encrypt Kie Keys
+    // Encrypt Kie Keys for Cloud
     const encryptedKeys = await Promise.all(settings.apiKeys.map(async (k) => ({
         ...k,
         key: k.key ? await encrypt(k.key, ENCRYPTION_SECRET) : ''
     })));
 
-    // Encrypt Gemini Key
+    // Encrypt Gemini Key for Cloud
     const encryptedGeminiKey = settings.geminiApiKey 
         ? await encrypt(settings.geminiApiKey, ENCRYPTION_SECRET) 
         : '';

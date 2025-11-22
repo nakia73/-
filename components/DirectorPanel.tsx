@@ -229,8 +229,8 @@ const DirectorPanel: React.FC<DirectorPanelProps> = ({
                         className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-white focus:border-secondary outline-none"
                      >
                          <option value="" disabled>{t.modal_select_edit}</option>
-                         {directorTemplates.map(t => (
-                             <option key={t.id} value={t.id}>{t.name} {t.isDefault ? t.dir_tmpl_default : ''}</option>
+                         {directorTemplates.map(tmpl => (
+                             <option key={tmpl.id} value={tmpl.id}>{tmpl.name} {tmpl.isDefault ? t.dir_tmpl_default : ''}</option>
                          ))}
                      </select>
                      <button 
@@ -347,7 +347,7 @@ const DirectorPanel: React.FC<DirectorPanelProps> = ({
                       ) : (
                           <>
                               {uploadingImage ? (
-                                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                               ) : (
                                   <svg className="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                               )}
@@ -443,6 +443,19 @@ const DirectorPanel: React.FC<DirectorPanelProps> = ({
                       />
                       <span className="text-white font-bold w-8 text-center">{directorCount}</span>
                   </div>
+              </div>
+
+              {/* 6. ASPECT RATIO (Input Phase) */}
+              <div>
+                  <label className="text-xs text-gray-400 font-medium block mb-2">{t.gen_aspect_ratio}</label>
+                  <select 
+                    value={settings.aspectRatio}
+                    onChange={(e) => setSettings({...settings, aspectRatio: e.target.value as any})}
+                    className="w-full bg-surface border border-white/10 rounded-lg p-2 text-sm text-white focus:border-secondary outline-none appearance-none"
+                  >
+                    <option value="16:9">16:9 (Landscape)</option>
+                    <option value="9:16">9:16 (Portrait)</option>
+                  </select>
               </div>
           </div>
 
