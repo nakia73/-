@@ -1,9 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
-import { ApiKeyData, DirectorTemplate, PromptTemplate } from '../types';
+import { ApiKeyData, DirectorTemplate, PromptTemplate, AppSettings } from '../types';
 import { loadSettings, saveCloudSettings } from '../services/settingsService';
-import { DEFAULT_BASE_SYSTEM_PROMPT } from '../services/promptService';
 import { useToast } from '../components/ToastContext';
 
 interface UseAppSettingsProps {
@@ -19,7 +18,7 @@ export const useAppSettings = ({ user, apiKeys, importKeys }: UseAppSettingsProp
   
   // Director Mode
   const [directorTemplates, setDirectorTemplates] = useState<DirectorTemplate[]>([]);
-  const [activeTemplateId, setActiveTemplateId] = useState<string>('tmpl_cinematic');
+  const [activeTemplateId, setActiveTemplateId] = useState<string>('tmpl_sora_expert');
   
   // Prompt Generator
   const [promptTemplates, setPromptTemplates] = useState<PromptTemplate[]>([]);
@@ -38,7 +37,7 @@ export const useAppSettings = ({ user, apiKeys, importKeys }: UseAppSettingsProp
         setEnableLocalHistory(settings.enableLocalHistory || false);
         
         setDirectorTemplates(settings.directorTemplates || []);
-        setActiveTemplateId(settings.activeTemplateId || 'tmpl_cinematic');
+        setActiveTemplateId(settings.activeTemplateId || 'tmpl_sora_expert');
         
         setPromptTemplates(settings.promptTemplates || []);
         setActivePromptTemplateId(settings.activePromptTemplateId || 'pt_sora_expert');
@@ -59,27 +58,31 @@ export const useAppSettings = ({ user, apiKeys, importKeys }: UseAppSettingsProp
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const handleSaveSettings = async () => {
+  // Allow passing overrides to ensure latest state is saved immediately (avoiding stale closures)
+  const handleSaveSettings = async (overrides?: Partial<AppSettings>) => {
     setIsSaving(true);
     try {
-      const settings = {
-        apiKeys,
-        geminiApiKey,
-        suppressQualityWarning,
-        enableLocalHistory,
-        directorTemplates,
-        activeTemplateId,
-        promptTemplates,
-        activePromptTemplateId,
+      // Construct settings object using current state OR provided overrides
+      const settings: AppSettings = {
+        apiKeys: overrides?.apiKeys ?? apiKeys,
+        geminiApiKey: overrides?.geminiApiKey ?? geminiApiKey,
+        suppressQualityWarning: overrides?.suppressQualityWarning ?? suppressQualityWarning,
+        enableLocalHistory: overrides?.enableLocalHistory ?? enableLocalHistory,
+        
+        directorTemplates: overrides?.directorTemplates ?? directorTemplates,
+        activeTemplateId: overrides?.activeTemplateId ?? activeTemplateId,
+        
+        promptTemplates: overrides?.promptTemplates ?? promptTemplates,
+        activePromptTemplateId: overrides?.activePromptTemplateId ?? activePromptTemplateId,
+        
         updatedAt: Date.now()
       };
       
       if (user) {
         await saveCloudSettings(user.id, settings);
-        addToast("Settings saved to Veo Cloud", 'success');
+        // addToast("Settings saved to Veo Cloud", 'success'); // Optional: reduce noise
       } else {
         await saveCloudSettings('local-fallback', settings); 
-        addToast("Settings saved locally", 'success');
       }
     } catch (e: any) {
       console.warn("Save error", e);
@@ -90,40 +93,87 @@ export const useAppSettings = ({ user, apiKeys, importKeys }: UseAppSettingsProp
     }
   };
 
-  // --- Template Handlers ---
+  // --- Template Handlers (Director Mode) ---
 
-  // Director Mode
   const addTemplate = (name: string, prompt: string) => {
       const newTmpl: DirectorTemplate = { id: crypto.randomUUID(), name, systemPrompt: prompt };
-      setDirectorTemplates(prev => [...prev, newTmpl]);
+      const newTemplates = [...directorTemplates, newTmpl];
+      
+      setDirectorTemplates(newTemplates);
       setActiveTemplateId(newTmpl.id);
-      setTimeout(handleSaveSettings, 100);
-  };
-  const updateTemplate = (id: string, name: string, prompt: string) => {
-      setDirectorTemplates(prev => prev.map(t => t.id === id ? { ...t, name, systemPrompt: prompt } : t));
-      setTimeout(handleSaveSettings, 100);
-  };
-  const deleteTemplate = (id: string) => {
-      setDirectorTemplates(prev => prev.filter(t => t.id !== id));
-      if (activeTemplateId === id) setActiveTemplateId('tmpl_cinematic');
-      setTimeout(handleSaveSettings, 100);
+      
+      // Save immediately with the calculated new state
+      handleSaveSettings({ 
+          directorTemplates: newTemplates, 
+          activeTemplateId: newTmpl.id 
+      });
   };
 
-  // Prompt Generator
+  const updateTemplate = (id: string, name: string, prompt: string) => {
+      const newTemplates = directorTemplates.map(t => t.id === id ? { ...t, name, systemPrompt: prompt } : t);
+      
+      setDirectorTemplates(newTemplates);
+      
+      // Save immediately
+      handleSaveSettings({ directorTemplates: newTemplates });
+  };
+
+  const deleteTemplate = (id: string) => {
+      const newTemplates = directorTemplates.filter(t => t.id !== id);
+      let newActiveId = activeTemplateId;
+      
+      if (activeTemplateId === id) {
+          newActiveId = 'tmpl_sora_expert'; // Default fallback
+          setActiveTemplateId(newActiveId);
+      }
+      
+      setDirectorTemplates(newTemplates);
+      
+      // Save immediately
+      handleSaveSettings({ 
+          directorTemplates: newTemplates,
+          activeTemplateId: newActiveId
+      });
+  };
+
+  // --- Template Handlers (Prompt Generator) ---
+
   const addPromptTemplate = (name: string, template: string) => {
       const newTmpl: PromptTemplate = { id: crypto.randomUUID(), name, template };
-      setPromptTemplates(prev => [...prev, newTmpl]);
+      const newTemplates = [...promptTemplates, newTmpl];
+      
+      setPromptTemplates(newTemplates);
       setActivePromptTemplateId(newTmpl.id);
-      setTimeout(handleSaveSettings, 100);
+      
+      handleSaveSettings({
+          promptTemplates: newTemplates,
+          activePromptTemplateId: newTmpl.id
+      });
   };
+
   const updatePromptTemplate = (id: string, name: string, template: string) => {
-      setPromptTemplates(prev => prev.map(t => t.id === id ? { ...t, name, template } : t));
-      setTimeout(handleSaveSettings, 100);
+      const newTemplates = promptTemplates.map(t => t.id === id ? { ...t, name, template } : t);
+      
+      setPromptTemplates(newTemplates);
+      
+      handleSaveSettings({ promptTemplates: newTemplates });
   };
+
   const deletePromptTemplate = (id: string) => {
-      setPromptTemplates(prev => prev.filter(t => t.id !== id));
-      if (activePromptTemplateId === id) setActivePromptTemplateId('pt_sora_expert');
-      setTimeout(handleSaveSettings, 100);
+      const newTemplates = promptTemplates.filter(t => t.id !== id);
+      let newActiveId = activePromptTemplateId;
+
+      if (activePromptTemplateId === id) {
+          newActiveId = 'pt_sora_expert';
+          setActivePromptTemplateId(newActiveId);
+      }
+      
+      setPromptTemplates(newTemplates);
+      
+      handleSaveSettings({ 
+          promptTemplates: newTemplates,
+          activePromptTemplateId: newActiveId
+      });
   };
 
   return {

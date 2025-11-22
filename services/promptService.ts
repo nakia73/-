@@ -35,7 +35,7 @@ export const DEFAULT_BASE_SYSTEM_PROMPT = `あなたはSora 2の動画生成エ�
 
 // Internal Protocol to enforce settings regardless of user meta-prompt
 // This is appended to ensure the LLM looks at the config block we generate.
-const SYSTEM_PROTOCOL_ENFORCEMENT = `
+export const SYSTEM_PROTOCOL_ENFORCEMENT = `
 ### CRITICAL SYSTEM PROTOCOL (OVERRIDE)
 You must strictly adhere to the following constraints provided in the [CONFIGURATION PARAMETERS] block:
 1. **Language**: Output MUST be in the language specified.
@@ -44,6 +44,19 @@ You must strictly adhere to the following constraints provided in the [CONFIGURA
 
 Output ONLY the final result. No markdown conversational filler.
 `;
+
+// Helper to construct the parameter block (Exported for Director Mode)
+export const constructParamBlock = (config: PromptConfig): string => {
+  return [
+    `TARGET_LANGUAGE: ${config.language === 'ja' ? 'Japanese (日本語)' : 'English (英語)'}`,
+    `AUDIO_MODE: ${config.audioMode.toUpperCase()} (${config.audioMode === 'off' ? 'Silent video (No Sound)' : config.audioMode === 'dialogue' ? 'Include NATURAL SPOKEN DIALOGUE between characters' : 'Include PROFESSIONAL NARRATION/VOICEOVER'})`,
+    `TEXT_OVERLAYS: ${config.enableText ? 'REQUIRED (Include visual text descriptions / Subtitles)' : 'FORBIDDEN (Clean feed, no text)'}`,
+    `TIMING_CONTROL: ${config.enableJsonTiming ? 'JSON_FORMAT (Use explicit timing objects)' : 'STANDARD_DESCRIPTIVE'}`,
+    config.imageReferenceMode 
+      ? `IMAGE_STRATEGY: ${config.imageReferenceMode === 'animate' ? 'ANIMATE_EXISTING_IMAGE (Keep composition, add motion)' : 'SUBJECT_REFERENCE (Use subject in NEW context)'}` 
+      : 'IMAGE_STRATEGY: TEXT_TO_VIDEO (No reference image)'
+  ].join('\n');
+};
 
 export const generateEnhancedPrompt = async (
   apiKey: string,
@@ -57,16 +70,7 @@ export const generateEnhancedPrompt = async (
   const ai = new GoogleGenAI({ apiKey });
 
   // 1. Construct a Structured Parameter Block
-  // This converts the boolean/enum config into clear, capitalised instructions for the LLM.
-  const paramBlock = [
-    `TARGET_LANGUAGE: ${config.language === 'ja' ? 'Japanese (日本語)' : 'English (英語)'}`,
-    `AUDIO_MODE: ${config.audioMode.toUpperCase()} (${config.audioMode === 'off' ? 'Silent video' : config.audioMode === 'dialogue' ? 'Include spoken dialogue' : 'Include voiceover'})`,
-    `TEXT_OVERLAYS: ${config.enableText ? 'REQUIRED (Include visual text descriptions)' : 'FORBIDDEN (Clean feed, no text)'}`,
-    `TIMING_CONTROL: ${config.enableJsonTiming ? 'JSON_FORMAT (Use explicit timing objects)' : 'STANDARD_DESCRIPTIVE'}`,
-    config.imageReferenceMode 
-      ? `IMAGE_STRATEGY: ${config.imageReferenceMode === 'animate' ? 'ANIMATE_EXISTING_IMAGE (Keep composition, add motion)' : 'SUBJECT_REFERENCE (Use subject in NEW context)'}` 
-      : 'IMAGE_STRATEGY: TEXT_TO_VIDEO (No reference image)'
-  ].join('\n');
+  const paramBlock = constructParamBlock(config);
 
   // 2. Construct the User Content
   // We separate the Config from the Draft Idea clearly.

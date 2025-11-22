@@ -19,18 +19,9 @@ const ENCRYPTION_SECRET = 'kie-studio-secure-storage';
 
 const DEFAULT_DIRECTOR_TEMPLATES: DirectorTemplate[] = [
   {
-    id: 'tmpl_cinematic',
-    name: 'Cinematic Director',
-    systemPrompt: `You are an expert Film Director and Cinematographer.
-Your task is to take a user's abstract video idea and break it down into distinct, visually compelling scenes.
-For each scene, you must write a highly detailed, cinematic prompt optimized for AI Video Generators (Sora/Veo).
-
-Guidelines:
-- Include camera angles (Drone, Close-up, Low angle).
-- Describe lighting (Neon, Golden hour, Cinematic).
-- Describe motion (Fast tracking, Slow motion, Static).
-- Be specific about subject and environment.
-- English only.`,
+    id: 'tmpl_sora_expert',
+    name: 'Sora2エキスパート', // Updated name per request
+    systemPrompt: DEFAULT_BASE_SYSTEM_PROMPT, // Use the standardized prompt
     isDefault: true
   },
   {
@@ -50,7 +41,7 @@ Focus on:
 const DEFAULT_PROMPT_TEMPLATES: PromptTemplate[] = [
   {
     id: 'pt_sora_expert',
-    name: 'Sora 2 Expert (Default)',
+    name: 'Sora2エキスパート', // Consistency for single mode too
     template: DEFAULT_BASE_SYSTEM_PROMPT,
     isDefault: true
   },
@@ -70,7 +61,7 @@ const getLocalSettings = async (): Promise<AppSettings> => {
   
   const keysJson = localStorage.getItem(LOCAL_STORAGE_KEYS_KEY);
   const dirTemplatesJson = localStorage.getItem(LOCAL_STORAGE_TEMPLATES_KEY);
-  const activeTemplateId = localStorage.getItem(LOCAL_STORAGE_ACTIVE_TMPL_KEY) || 'tmpl_cinematic';
+  const activeTemplateId = localStorage.getItem(LOCAL_STORAGE_ACTIVE_TMPL_KEY) || 'tmpl_sora_expert';
   
   const promptTemplatesJson = localStorage.getItem(LOCAL_STORAGE_PROMPT_TEMPLATES_KEY);
   const activePromptTemplateId = localStorage.getItem(LOCAL_STORAGE_ACTIVE_PROMPT_TMPL_KEY) || 'pt_sora_expert';
@@ -179,7 +170,7 @@ export const loadSettings = async (userId?: string): Promise<AppSettings> => {
           apiKeys: decryptedKeys,
           geminiApiKey: decryptedGeminiKey,
           directorTemplates: cloudSettings.directorTemplates || DEFAULT_DIRECTOR_TEMPLATES,
-          activeTemplateId: cloudSettings.activeTemplateId || 'tmpl_cinematic',
+          activeTemplateId: cloudSettings.activeTemplateId || 'tmpl_sora_expert',
           promptTemplates: cloudSettings.promptTemplates || DEFAULT_PROMPT_TEMPLATES,
           activePromptTemplateId: cloudSettings.activePromptTemplateId || 'pt_sora_expert'
       };

@@ -39,8 +39,8 @@ export const translations = {
     
     gen_start_frame_url: "Start Frame / Image",
     gen_end_frame_url: "End Frame (Veo Only)",
-    gen_prompt_label: "Video Generation Prompt",
-    gen_prompt_placeholder: "The final detailed prompt will appear here...",
+    gen_prompt_label: "Prompt", 
+    gen_prompt_placeholder: "Describe your video concept here...",
     gen_aspect_ratio: "Aspect Ratio",
     gen_resolution: "Resolution",
     gen_duration: "Duration",
@@ -54,8 +54,10 @@ export const translations = {
     gen_no_key: "Active API Key required. Please configure in Settings.",
     gen_no_gemini_key: "Gemini API Key required for prompt generation.",
     
-    // Advanced Prompt Config
-    adv_title: "Prompt Engineering & Config",
+    // Advanced Prompt Config - STRICTLY SEPARATED
+    adv_title_gen: "Prompt Creation", // For Text/Image Mode
+    adv_title_director: "Detail Settings", // For Director Mode
+    
     adv_lang: "Language",
     adv_lang_ja: "Japanese",
     adv_lang_en: "English",
@@ -63,7 +65,7 @@ export const translations = {
     adv_text_on: "On",
     adv_text_off: "Off",
     adv_audio: "Audio",
-    adv_audio_dialogue: "Dialogue",
+    adv_audio_dialogue: "Natural Dialogue",
     adv_audio_narration: "Narration",
     adv_audio_off: "Off",
     adv_timing: "Timing",
@@ -77,12 +79,12 @@ export const translations = {
     adv_img_desc: "'Animate' keeps composition. 'Subject Ref' makes new scene.",
 
     // New Prompt Generation UI
-    adv_gen_section: "Prompt Generator (Draft)",
-    adv_draft_label: "Draft Idea", // Unused in new compact UI
+    adv_gen_section: "Draft Input",
+    adv_draft_label: "Draft Idea", 
     adv_draft_placeholder: "Draft Idea (e.g. Cat eating pizza...)",
-    adv_meta_label: "System Instruction (Meta-Prompt)",
+    adv_meta_label: "Custom Prompt", 
     adv_meta_placeholder: "Define how the AI should write the prompt...",
-    adv_btn_generate: "Generate",
+    adv_btn_generate: "Generate Prompt",
     
     // Quality Warning Modal
     warn_title: "High Cost Warning",
@@ -93,16 +95,19 @@ export const translations = {
     warn_btn_confirm: "Proceed",
 
     // Director Mode
+    dir_concept_label: "Project Concept", // Specific label for Director Mode
     dir_idea_placeholder: "E.g. A cyberpunk trailer about a robot detective...",
     dir_count_label: "Scene Count",
     dir_image_label: "Reference Image (Optional)",
     dir_image_desc: "Applied to all scenes as start frame.",
     dir_img_change: "Change Image",
     dir_use_image: "Use Reference Image",
-    dir_btn_plan: "Draft Production Plan",
-    dir_planning: "AI Director is planning...",
+    dir_img_strategy: "Image Processing",
+    dir_btn_plan: "Generate Multiple Prompts",
+    dir_planning: "Generating multiple prompts...",
     dir_review_title: "Production Plan Review",
     dir_review_desc: "Review prompts and image settings before batch generation.",
+    dir_prod_settings: "Production Settings",
     dir_scene: "SCENE",
     dir_btn_execute: "BATCH GENERATE ALL",
     dir_btn_back: "Back to Idea",
@@ -114,14 +119,21 @@ export const translations = {
     dir_conf_credits: "Credits",
     dir_conf_btn: "Confirm & Charge",
     
-    dir_persona_label: "AI Director Persona",
-    dir_tmpl_edit: "Edit / Create",
+    dir_persona_label: "Custom Prompt", 
+    dir_tmpl_edit: "Edit",
     dir_tmpl_name: "Template Name",
-    dir_tmpl_prompt: "System Prompt",
+    dir_tmpl_prompt: "System Prompt (Custom Instruction)",
     dir_tmpl_save: "Save Template",
     dir_tmpl_delete: "Delete",
     dir_tmpl_default: "(Default)",
     
+    // Shared Modal Actions
+    modal_select_edit: "Select to edit...",
+    modal_new_tmpl: "+ New",
+    modal_save_as_new: "Save as New",
+    modal_update: "Update",
+    modal_create: "Create",
+
     // History Sidebar
     hist_queue: "Queue",
     hist_empty: "Queue is empty",
@@ -184,7 +196,7 @@ export const translations = {
     nav_settings: "設定",
     
     // App Header
-    app_system_status: "Sonic-GEN マルチモデルシステム",
+    app_system_status: "SONIC-GEN SYSTEM",
     app_online: "稼働中",
     app_cluster_status: "クラスタ状態",
     app_welcome_title: "Sonic-GEN",
@@ -213,8 +225,8 @@ export const translations = {
 
     gen_start_frame_url: "開始フレーム / 画像",
     gen_end_frame_url: "終了フレーム (Veoのみ)",
-    gen_prompt_label: "動画生成用プロンプト (最終出力)",
-    gen_prompt_placeholder: "ここに生成された詳細なプロンプトが入力されます...",
+    gen_prompt_label: "プロンプト", 
+    gen_prompt_placeholder: "動画のプロンプトや詳細を入力してください...",
     gen_aspect_ratio: "アスペクト比",
     gen_resolution: "解像度",
     gen_duration: "動画の長さ",
@@ -228,8 +240,10 @@ export const translations = {
     gen_no_key: "有効なAPIキーが必要です。設定画面を確認してください。",
     gen_no_gemini_key: "プロンプト生成にはGemini APIキーが必要です。",
 
-    // Advanced Prompt Config
-    adv_title: "プロンプト工学 & 生成設定",
+    // Advanced Prompt Config - STRICTLY SEPARATED
+    adv_title_gen: "プロンプト作成", // Standard Mode
+    adv_title_director: "詳細設定", // Director Mode
+    
     adv_lang: "言語",
     adv_lang_ja: "日本語",
     adv_lang_en: "英語",
@@ -237,8 +251,8 @@ export const translations = {
     adv_text_on: "あり",
     adv_text_off: "なし",
     adv_audio: "音声",
-    adv_audio_dialogue: "会話",
-    adv_audio_narration: "ナレ",
+    adv_audio_dialogue: "自然な会話",
+    adv_audio_narration: "ナレーション",
     adv_audio_off: "なし",
     adv_timing: "時間制御",
     adv_timing_json: "JSON制御",
@@ -251,12 +265,12 @@ export const translations = {
     adv_img_desc: "「そのまま」は構図維持。「被写体」は新規シーン。",
 
     // New Prompt Generation UI
-    adv_gen_section: "プロンプト生成 (ドラフト)",
-    adv_draft_label: "ドラフト", // Compact
+    adv_gen_section: "ドラフト入力",
+    adv_draft_label: "ドラフト", 
     adv_draft_placeholder: "アイデア (例: ピザを食べる猫...)",
-    adv_meta_label: "システム指示 (メタプロンプト)",
+    adv_meta_label: "カスタムプロンプト", 
     adv_meta_placeholder: "AIがどのようにプロンプトを書くべきかを定義します...",
-    adv_btn_generate: "生成",
+    adv_btn_generate: "プロンプト生成",
 
     // Quality Warning Modal
     warn_title: "高コスト警告",
@@ -267,16 +281,19 @@ export const translations = {
     warn_btn_confirm: "承認して続行",
 
     // Director Mode
+    dir_concept_label: "作品のコンセプト", // Specific label for Director Mode
     dir_idea_placeholder: "例: ロボット探偵が活躍するサイバーパンク映画の予告編...",
     dir_count_label: "シーン数（目標）",
     dir_image_label: "参照画像 (任意)",
     dir_image_desc: "全シーンの開始フレームとして適用されます。",
     dir_img_change: "画像を変更",
     dir_use_image: "参照画像を使用",
-    dir_btn_plan: "構成案を作成",
-    dir_planning: "AI監督が構成中...",
+    dir_img_strategy: "画像処理設定",
+    dir_btn_plan: "プロンプト一括生成",
+    dir_planning: "プロンプト一括生成中...",
     dir_review_title: "構成レビュー",
     dir_review_desc: "プロンプトや画像使用設定を確認・編集してください。",
+    dir_prod_settings: "制作設定 (Production Settings)",
     dir_scene: "シーン",
     dir_btn_execute: "全て一括生成を実行",
     dir_btn_back: "企画に戻る",
@@ -288,14 +305,21 @@ export const translations = {
     dir_conf_credits: "クレジット",
     dir_conf_btn: "承認して実行",
     
-    dir_persona_label: "AI監督ペルソナ",
-    dir_tmpl_edit: "編集 / 新規作成",
+    dir_persona_label: "カスタムプロンプト",
+    dir_tmpl_edit: "編集",
     dir_tmpl_name: "テンプレート名",
-    dir_tmpl_prompt: "システムプロンプト (監督の指示)",
+    dir_tmpl_prompt: "システムプロンプト (カスタム指示)",
     dir_tmpl_save: "テンプレートを保存",
     dir_tmpl_delete: "削除",
     dir_tmpl_default: "(デフォルト)",
     
+    // Shared Modal Actions
+    modal_select_edit: "編集するテンプレートを選択...",
+    modal_new_tmpl: "+ 新規作成",
+    modal_save_as_new: "別名で保存",
+    modal_update: "更新",
+    modal_create: "作成",
+
     // History Sidebar
     hist_queue: "処理キュー",
     hist_empty: "キューは空です",

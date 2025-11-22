@@ -13,7 +13,7 @@ interface GeneratorFormProps {
   onAddToQueue: (prompt: string, startImageUrl: string | null, endImageUrl: string | null, settings: VideoSettings, promptConfig?: PromptConfig) => void;
   queueLength: number;
   apiKeys: ApiKeyData[];
-  geminiApiKey?: string; // New Prop
+  geminiApiKey?: string; 
   suppressQualityWarning: boolean;
   setSuppressQualityWarning: (suppress: boolean) => void;
   handleSaveSettings: () => Promise<void>;
@@ -70,7 +70,7 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
   // Local state for the modal inputs
   const [localMetaName, setLocalMetaName] = useState('');
   const [localMetaContent, setLocalMetaContent] = useState('');
-  const [localMetaId, setLocalMetaId] = useState<string | null>(null); // If ID exists, we are editing
+  const [localMetaId, setLocalMetaId] = useState<string | null>(null); 
   
   const startFileRef = useRef<HTMLInputElement>(null);
   const endFileRef = useRef<HTMLInputElement>(null);
@@ -84,6 +84,7 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
     removeWatermark: true
   });
 
+  // Standard Config for Text/Image Modes
   const [promptConfig, setPromptConfig] = useState<PromptConfig>({
     language: 'ja',
     enableText: false,
@@ -92,23 +93,38 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
     imageReferenceMode: 'animate'
   });
 
-  // Sync local state when active template changes
+  // SEPARATED Config for Director Mode to avoid bleeding
+  const [directorPromptConfig, setDirectorPromptConfig] = useState<PromptConfig>({
+    language: 'ja',
+    enableText: false,
+    audioMode: 'off',
+    enableJsonTiming: false,
+    imageReferenceMode: 'animate'
+  });
+
+  // Sync local state when active template changes or modal opens
   useEffect(() => {
+      if (showMetaModal) {
+         loadActiveTemplateToLocal();
+      }
+  }, [showMetaModal, activePromptTemplateId]);
+
+  const loadActiveTemplateToLocal = () => {
       const active = promptTemplates.find(pt => pt.id === activePromptTemplateId);
       if (active) {
           setLocalMetaContent(active.template);
           setLocalMetaName(active.name);
           setLocalMetaId(active.id);
-      } else if (promptTemplates.length > 0) {
-          // Fallback if active ID is invalid
-          setLocalMetaContent(promptTemplates[0].template);
-          setLocalMetaName(promptTemplates[0].name);
-          setLocalMetaId(promptTemplates[0].id);
       } else {
-          // Fallback default
-          setLocalMetaContent(DEFAULT_BASE_SYSTEM_PROMPT);
+          resetMetaEditor();
       }
-  }, [activePromptTemplateId, promptTemplates]);
+  };
+
+  const resetMetaEditor = () => {
+      setLocalMetaId(null);
+      setLocalMetaName('New Custom Prompt');
+      setLocalMetaContent(DEFAULT_BASE_SYSTEM_PROMPT);
+  };
 
   const getActiveKey = () => {
       const validKey = apiKeys.find(k => k.key && k.key.length > 10 && k.status !== 'error');
@@ -157,8 +173,6 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
         return;
     }
 
-    // Use explicitly provided Gemini Key, fallback to active Kie key if user insists on using that as proxy
-    // But warning: Prompt Service uses Google GenAI SDK directly, so it needs a REAL Google Key.
     const apiKey = geminiApiKey; 
     if (!apiKey) {
       addToast(t.gen_no_gemini_key || "Gemini API Key required in Settings.", 'error');
@@ -170,7 +184,6 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
         const active = promptTemplates.find(pt => pt.id === activePromptTemplateId);
         const metaPrompt = active ? active.template : DEFAULT_BASE_SYSTEM_PROMPT;
 
-        // Pass the apiKey explicitly
         const enhanced = await generateEnhancedPrompt(apiKey, draftIdea, promptConfig, enhancerModel, metaPrompt);
         setPrompt(enhanced);
         addToast("Prompt generated and applied!", "success");
@@ -179,6 +192,18 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
     } finally {
         setIsEnhancing(false);
     }
+  };
+
+  // --- Meta Prompt Modal Logic (Enhanced with full template editing) ---
+
+  const handleTemplateSelectInModal = (id: string) => {
+      const tmpl = promptTemplates.find(t => t.id === id);
+      if (tmpl) {
+          setActivePromptTemplateId(id); // Switch context
+          setLocalMetaId(tmpl.id);
+          setLocalMetaName(tmpl.name);
+          setLocalMetaContent(tmpl.template);
+      }
   };
 
   const handleSaveMetaTemplate = () => {
@@ -191,7 +216,6 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
           updatePromptTemplate(localMetaId, localMetaName, localMetaContent);
           addToast("Template updated", "success");
       } else {
-          // If ID is null, user wants to save as new
           addPromptTemplate(localMetaName, localMetaContent);
           addToast("New template saved", "success");
       }
@@ -212,6 +236,7 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
           }
           deletePromptTemplate(localMetaId);
           addToast("Template deleted", "info");
+          resetMetaEditor();
       }
   };
 
@@ -238,7 +263,7 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
   const handleDirectorExecuteBatch = (scenes: any[]) => {
     scenes.forEach((scene: any) => {
       const sceneImage = scene.imageUrl || null;
-      onAddToQueue(scene.prompt, sceneImage, null, settings, undefined);
+      onAddToQueue(scene.prompt, sceneImage, null, settings, directorPromptConfig); 
     });
     addToast(`Queued ${scenes.length} scenes for batch generation!`, "success");
   };
@@ -273,96 +298,90 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
          t={t}
       />
 
-      {/* Meta Prompt Modal */}
+      {/* Meta Prompt Modal (Full Featured Template Editor) */}
       {showMetaModal && (
          <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-fade-in">
             <div className="bg-surface border border-white/10 rounded-xl p-6 max-w-lg w-full shadow-2xl">
                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-sm font-bold text-white">{t.adv_meta_label}</h3>
+                  <h3 className="text-sm font-bold text-white">{localMetaId ? t.dir_tmpl_edit : t.modal_new_tmpl}</h3>
                   <button onClick={() => setShowMetaModal(false)} className="text-gray-400 hover:text-white">
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                   </button>
                </div>
                
-               {/* Template Selection */}
-               <div className="mb-4">
-                   <label className="text-xs text-gray-400 block mb-1">Select Template</label>
-                   <div className="flex gap-2">
-                       <select 
-                           value={activePromptTemplateId}
-                           onChange={(e) => setActivePromptTemplateId(e.target.value)}
-                           className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-2 text-sm text-white focus:border-secondary outline-none"
-                       >
-                           {promptTemplates.map(pt => (
-                               <option key={pt.id} value={pt.id}>
-                                   {pt.name} {pt.isDefault ? '(Default)' : ''}
-                               </option>
-                           ))}
-                       </select>
-                       <button 
-                           onClick={() => {
-                               // Create new empty
-                               setLocalMetaId(null);
-                               setLocalMetaName('New Template');
-                               setLocalMetaContent('You are a prompt engineer...');
-                               addToast("Start editing new template", "info");
-                           }}
-                           className="px-3 py-2 bg-white/5 hover:bg-white/10 rounded border border-white/10 text-xs text-gray-300"
-                           title="New Template"
-                       >
-                           + New
-                       </button>
+               {/* Template Switcher Inside Modal */}
+               <div className="mb-4 flex gap-2">
+                   <select 
+                       value={localMetaId || ''}
+                       onChange={(e) => handleTemplateSelectInModal(e.target.value)}
+                       className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-2 text-sm text-white focus:border-secondary outline-none"
+                   >
+                       <option value="" disabled>{t.modal_select_edit}</option>
+                       {promptTemplates.map(pt => (
+                           <option key={pt.id} value={pt.id}>
+                               {pt.name} {pt.isDefault ? t.dir_tmpl_default : ''}
+                           </option>
+                       ))}
+                   </select>
+                   <button 
+                       onClick={resetMetaEditor}
+                       className="px-3 py-2 bg-white/5 hover:bg-white/10 rounded border border-white/10 text-xs text-gray-300 whitespace-nowrap"
+                       title="Create New Template"
+                   >
+                       {t.modal_new_tmpl}
+                   </button>
+               </div>
+
+               <div className="space-y-4">
+                   <div>
+                       <label className="text-xs text-gray-400 block mb-1">{t.dir_tmpl_name}</label>
+                       <input 
+                            type="text"
+                            value={localMetaName}
+                            onChange={(e) => setLocalMetaName(e.target.value)}
+                            className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-sm text-white focus:border-secondary outline-none"
+                            placeholder="Template Name"
+                       />
                    </div>
-               </div>
+                   
+                   <div>
+                        <label className="text-xs text-gray-400 block mb-1">{t.adv_meta_label}</label>
+                        <textarea 
+                            value={localMetaContent}
+                            onChange={(e) => setLocalMetaContent(e.target.value)}
+                            className="w-full h-48 bg-black/40 border border-white/10 rounded px-3 py-2 text-xs text-gray-300 focus:border-secondary outline-none resize-none font-mono leading-relaxed"
+                            placeholder={t.adv_meta_placeholder}
+                        />
+                    </div>
 
-               <div className="mb-2">
-                   <label className="text-xs text-gray-400 block mb-1">Template Name</label>
-                   <input 
-                        type="text"
-                        value={localMetaName}
-                        onChange={(e) => setLocalMetaName(e.target.value)}
-                        className="w-full bg-black/40 border border-white/10 rounded px-2 py-1.5 text-sm text-white focus:border-secondary outline-none"
-                        placeholder="Template Name"
-                   />
-               </div>
-               
-               <p className="text-xs text-gray-400 mb-2 leading-relaxed">
-                  {t.adv_meta_placeholder}
-               </p>
-
-               <textarea 
-                    value={localMetaContent}
-                    onChange={(e) => setLocalMetaContent(e.target.value)}
-                    className="w-full h-48 bg-black/40 border border-white/10 rounded p-3 text-xs text-gray-300 focus:border-secondary outline-none resize-none font-mono leading-relaxed mb-4"
-                />
-
-                <div className="flex gap-3 pt-2 border-t border-white/5">
-                    {localMetaId && !promptTemplates.find(t => t.id === localMetaId)?.isDefault && (
-                        <button 
-                            onClick={handleDeleteMetaTemplate}
-                            className="px-3 py-2 text-xs text-red-400 hover:text-red-300 border border-red-500/30 rounded hover:bg-red-500/10"
-                        >
-                            Delete
-                        </button>
-                    )}
-                    
-                    <div className="flex-1 flex gap-2 justify-end">
-                        {localMetaId && (
+                    <div className="flex gap-3 pt-2 border-t border-white/5">
+                        {localMetaId && !promptTemplates.find(t => t.id === localMetaId)?.isDefault && (
                             <button 
-                                onClick={handleSaveAsNew}
-                                className="px-4 py-2 text-xs text-gray-300 hover:text-white border border-white/10 rounded hover:bg-white/5"
+                                onClick={handleDeleteMetaTemplate}
+                                className="px-3 py-2 text-xs text-red-400 hover:text-red-300 border border-red-500/30 rounded hover:bg-red-500/10"
                             >
-                                Save as New
+                                {t.dir_tmpl_delete}
                             </button>
                         )}
-                        <button 
-                            onClick={handleSaveMetaTemplate}
-                            className="px-6 py-2 bg-secondary text-black text-xs font-bold rounded shadow-lg shadow-secondary/20 hover:bg-cyan-400 transition-colors"
-                        >
-                            {localMetaId ? 'Update' : 'Save'}
-                        </button>
+                        
+                        <div className="flex-1 flex gap-2 justify-end">
+                            {localMetaId && (
+                                <button 
+                                    onClick={handleSaveAsNew}
+                                    className="px-4 py-2 text-xs text-gray-300 hover:text-white border border-white/10 rounded hover:bg-white/5"
+                                >
+                                    {t.modal_save_as_new}
+                                </button>
+                            )}
+                            <button 
+                                onClick={handleSaveMetaTemplate}
+                                className="px-6 py-2 bg-secondary text-black text-xs font-bold rounded shadow-lg shadow-secondary/20 hover:bg-cyan-400 transition-colors"
+                            >
+                                {localMetaId ? t.modal_update : t.modal_create}
+                            </button>
+                        </div>
                     </div>
-                </div>
+               </div>
             </div>
          </div>
       )}
@@ -436,7 +455,17 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
             apiKeys={apiKeys}
             geminiApiKey={geminiApiKey}
             settings={settings}
+            // Pass setter to allow Director Panel to modify settings (Aspect, Resolution, etc.)
+            setSettings={setSettings}
             onExecuteBatch={handleDirectorExecuteBatch}
+            
+            // Pass SEPARATED config to DirectorPanel
+            promptConfig={directorPromptConfig}
+            setPromptConfig={setDirectorPromptConfig}
+            
+            // Pass Meta props
+            activePromptTemplateName={promptTemplates.find(t => t.id === activePromptTemplateId)?.name || 'Meta Prompt'}
+            onOpenMetaModal={() => setShowMetaModal(true)}
             
             directorTemplates={directorTemplates}
             activeTemplateId={activeTemplateId}
@@ -508,137 +537,119 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
               </div>
             )}
 
-            {/* Advanced Prompt Settings Panel (Shared for Text & Image modes) */}
-            <AdvancedSettingsPanel 
-              t={t}
-              showAdvancedSettings={showAdvancedSettings}
-              setShowAdvancedSettings={setShowAdvancedSettings}
-              
-              draftIdea={draftIdea}
-              setDraftIdea={setDraftIdea}
-              enhancerModel={enhancerModel}
-              setEnhancerModel={setEnhancerModel}
-              isEnhancing={isEnhancing}
-              handleEnhancePrompt={handleEnhancePrompt}
-              
-              promptConfig={promptConfig}
-              setPromptConfig={setPromptConfig}
-              
-              activePromptTemplateName={promptTemplates.find(t => t.id === activePromptTemplateId)?.name || 'Meta Prompt'}
-              onOpenMetaModal={() => setShowMetaModal(true)}
-              
-              mode={mode}
+            {/* Advanced Prompt Settings Panel (Prompt Creation) */}
+            <AdvancedSettingsPanel
+                t={t}
+                showAdvancedSettings={showAdvancedSettings}
+                setShowAdvancedSettings={setShowAdvancedSettings}
+                
+                draftIdea={draftIdea}
+                setDraftIdea={setDraftIdea}
+                enhancerModel={enhancerModel}
+                setEnhancerModel={setEnhancerModel}
+                isEnhancing={isEnhancing}
+                handleEnhancePrompt={handleEnhancePrompt}
+                
+                promptConfig={promptConfig}
+                setPromptConfig={setPromptConfig}
+                
+                activePromptTemplateName={promptTemplates.find(t => t.id === activePromptTemplateId)?.name || 'Default'}
+                onOpenMetaModal={() => setShowMetaModal(true)}
+                
+                mode={mode}
             />
 
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                 <label className="text-xs text-gray-400 font-medium">{t.gen_prompt_label}</label>
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs text-gray-400 font-medium">{t.gen_prompt_label}</label>
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder={t.gen_prompt_placeholder}
+                  className="w-full h-32 bg-surface border border-white/10 rounded-xl p-4 text-white placeholder-gray-600 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs text-gray-400 font-medium">{t.gen_aspect_ratio}</label>
+                  <select 
+                    value={settings.aspectRatio}
+                    onChange={(e) => setSettings({...settings, aspectRatio: e.target.value as any})}
+                    className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-primary outline-none appearance-none"
+                  >
+                    <option value="16:9">16:9 (Landscape)</option>
+                    <option value="9:16">9:16 (Portrait)</option>
+                  </select>
+                </div>
+
+                {isSora ? (
+                    <div className="space-y-1">
+                    <label className="text-xs text-gray-400 font-medium">{t.gen_duration}</label>
+                    <select 
+                        value={settings.duration}
+                        onChange={(e) => setSettings({...settings, duration: e.target.value as any})}
+                        className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-primary outline-none appearance-none"
+                    >
+                        <option value="10">10 Seconds</option>
+                        <option value="15">15 Seconds (1.5x Cost)</option>
+                    </select>
+                    </div>
+                ) : (
+                    <div className="space-y-1">
+                    <label className="text-xs text-gray-400 font-medium">{t.gen_resolution}</label>
+                    <select 
+                        value={settings.resolution}
+                        onChange={(e) => setSettings({...settings, resolution: e.target.value as any})}
+                        className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-primary outline-none appearance-none"
+                    >
+                        <option value="720p">720p</option>
+                        <option value="1080p">1080p (HQ)</option>
+                    </select>
+                    </div>
+                )}
               </div>
               
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder={t.gen_prompt_placeholder}
-                className="w-full h-32 bg-surface border border-white/10 rounded-xl p-4 text-white placeholder-gray-600 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all resize-none"
-              />
+              {isPro && (
+                 <div className="space-y-1">
+                    <label className="text-xs text-gray-400 font-medium">{t.gen_quality}</label>
+                    <select 
+                        value={settings.size}
+                        onChange={(e) => setSettings({...settings, size: e.target.value as any})}
+                        className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-primary outline-none appearance-none"
+                    >
+                        <option value="standard">Standard</option>
+                        <option value="high">High Quality</option>
+                    </select>
+                 </div>
+              )}
+              
+              {isSora && (
+                 <div className="flex items-center gap-2 pt-2">
+                    <input 
+                        type="checkbox"
+                        checked={settings.removeWatermark ?? true}
+                        onChange={(e) => setSettings({...settings, removeWatermark: e.target.checked})}
+                        className="w-4 h-4 rounded border-white/20 bg-black/50 checked:bg-primary text-primary focus:ring-0"
+                    />
+                    <span className="text-xs text-gray-300">{t.gen_watermark}</span>
+                 </div>
+              )}
+
+              <button
+                onClick={handleSubmit}
+                disabled={mode === 'image-to-video' && !startImageUrl && !prompt}
+                className="w-full py-4 bg-primary hover:bg-primaryHover text-black font-bold rounded-xl transition-all disabled:opacity-50 shadow-lg shadow-primary/20 flex items-center justify-center gap-2 mt-4"
+              >
+                <span>{t.gen_queue_btn}</span>
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </button>
             </div>
           </>
         )}
-
-        {/* Video Settings - Always Visible */}
-        <div className="grid grid-cols-2 gap-4 pt-2 border-t border-white/5">
-            <div>
-                <label className="block text-xs text-gray-500 mb-2">{t.gen_aspect_ratio}</label>
-                <div className="flex bg-surface rounded-lg p-1 border border-white/5">
-                    {['16:9', '9:16'].map((ratio) => (
-                        <button
-                        key={ratio}
-                        onClick={() => setSettings(s => ({ ...s, aspectRatio: ratio as any }))}
-                        className={`flex-1 py-2 text-xs font-medium rounded transition-all ${settings.aspectRatio === ratio ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'}`}
-                        >
-                        {isSora ? (ratio === '16:9' ? 'Landscape' : 'Portrait') : ratio}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {!isSora && (
-                <div>
-                    <label className="block text-xs text-gray-500 mb-2">{t.gen_resolution}</label>
-                    <div className="flex bg-surface rounded-lg p-1 border border-white/5">
-                        {['720p', '1080p'].map((res) => (
-                            <button
-                            key={res}
-                            onClick={() => setSettings(s => ({ ...s, resolution: res as any }))}
-                            className={`flex-1 py-2 text-xs font-medium rounded transition-all ${settings.resolution === res ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'}`}
-                            >
-                            {res}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {isSora && (
-                <div>
-                    <label className="block text-xs text-gray-500 mb-2">{t.gen_duration}</label>
-                    <div className="flex bg-surface rounded-lg p-1 border border-white/5">
-                        {['10', '15'].map((sec) => (
-                            <button
-                            key={sec}
-                            onClick={() => setSettings(s => ({ ...s, duration: sec as any }))}
-                            className={`flex-1 py-2 text-xs font-medium rounded transition-all ${settings.duration === sec ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'}`}
-                            >
-                            {sec}s
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
-            
-            {isPro && (
-                <div className="col-span-2">
-                    <label className="block text-xs text-gray-500 mb-2">{t.gen_quality}</label>
-                    <div className="flex bg-surface rounded-lg p-1 border border-white/5">
-                        {['standard', 'high'].map((sz) => (
-                            <button
-                            key={sz}
-                            onClick={() => setSettings(s => ({ ...s, size: sz as any }))}
-                            className={`flex-1 py-2 text-xs font-medium rounded transition-all ${settings.size === sz ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'}`}
-                            >
-                            {sz}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {isSora && (
-                <div className="col-span-2 flex items-center justify-between bg-surface rounded-lg p-3 border border-white/5">
-                    <span className="text-xs text-gray-400 font-medium">{t.gen_watermark}</span>
-                    <button
-                        onClick={() => setSettings(s => ({ ...s, removeWatermark: !s.removeWatermark }))}
-                        className={`w-10 h-5 rounded-full p-0.5 transition-colors ${settings.removeWatermark ? 'bg-primary' : 'bg-gray-700'}`}
-                    >
-                        <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${settings.removeWatermark ? 'translate-x-5' : 'translate-x-0'}`} />
-                    </button>
-                </div>
-            )}
-        </div>
       </div>
-
-      {mode !== 'director' && (
-        <div className="p-6 border-t border-white/5 bg-background/50 backdrop-blur-sm mt-auto">
-          <button
-            onClick={handleSubmit}
-            disabled={uploading}
-            className="w-full py-3.5 rounded-xl font-semibold text-black text-sm transition-all duration-200 bg-primary hover:bg-primaryHover shadow-[0_0_20px_rgba(190,242,100,0.3)] hover:shadow-[0_0_30px_rgba(190,242,100,0.5)] transform active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-             <span>{uploading ? t.gen_uploading : t.gen_queue_btn}</span>
-             {queueLength > 0 && <span className="bg-black/20 px-2 py-0.5 rounded-full text-xs font-bold">{queueLength}</span>}
-          </button>
-        </div>
-      )}
     </div>
   );
 };

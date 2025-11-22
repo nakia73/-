@@ -10,13 +10,10 @@ interface State {
 }
 
 class ErrorBoundary extends React.Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      hasError: false,
-      error: null,
-    };
-  }
+  state: State = {
+    hasError: false,
+    error: null,
+  };
 
   static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
@@ -33,12 +30,12 @@ class ErrorBoundary extends React.Component<Props, State> {
           <h2 className="text-2xl font-bold text-red-500 mb-4">Something went wrong</h2>
           <div className="bg-[#18181b] p-4 rounded border border-white/10 max-w-lg overflow-auto text-left">
             <p className="font-mono text-xs text-gray-400 whitespace-pre-wrap">
-              {this.state.error?.toString()}
+              {this.state.error && this.state.error.toString()}
             </p>
           </div>
-          <button
-            className="mt-6 px-6 py-2 bg-primary text-black font-bold rounded hover:bg-primaryHover transition-colors"
+          <button 
             onClick={() => window.location.reload()}
+            className="mt-6 px-4 py-2 bg-white/10 hover:bg-white/20 rounded text-sm transition-colors"
           >
             Reload Application
           </button>

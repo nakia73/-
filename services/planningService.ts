@@ -1,30 +1,46 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { DirectorScene } from "../types";
+import { DirectorScene, PromptConfig } from "../types";
+import { constructParamBlock, SYSTEM_PROTOCOL_ENFORCEMENT } from "./promptService";
 
 export const generateScenePlan = async (
   apiKey: string,
   idea: string,
   count: number,
-  systemPrompt?: string // Custom Director Persona
+  systemPrompt?: string, // Custom Director Persona
+  promptConfig?: PromptConfig // Added config to enforce settings
 ): Promise<DirectorScene[]> => {
   
   // Use the provided user API key
   const ai = new GoogleGenAI({ apiKey });
 
-  // Use custom prompt if provided, otherwise fallback (though App should provide default)
+  // Use custom prompt if provided, otherwise fallback
   const baseInstruction = systemPrompt || `You are an expert Film Director.`;
   
+  // Construct Parameter Block if config is provided
+  let paramBlock = "";
+  if (promptConfig) {
+      paramBlock = constructParamBlock(promptConfig);
+  }
+
   const formatInstruction = `
     Your task is to take a user's abstract video idea and break it down into ${count} distinct, visually compelling scenes.
     Return the response in pure JSON format containing an array of objects.
+    
+    ${paramBlock ? `
+    [CRITICAL CONFIGURATION]
+    You must ensure EVERY scene's "prompt" field adheres to the following settings:
+    ${paramBlock}
+    ` : ''}
+
     Each object must have:
     - "sceneNumber": integer
     - "description": string (A short 1-sentence summary in the same language as the User's input Idea)
-    - "prompt": string (The detailed English prompt for the AI Video Generator)
+    - "prompt": string (The detailed prompt for the AI Video Generator. MUST follow the [CRITICAL CONFIGURATION] settings above, especially Language and Audio settings.)
   `;
 
-  const fullSystemInstruction = `${baseInstruction}\n\n${formatInstruction}`;
+  // Merge instructions
+  const fullSystemInstruction = `${baseInstruction}\n\n${formatInstruction}\n\n${SYSTEM_PROTOCOL_ENFORCEMENT}`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
