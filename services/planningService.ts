@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { DirectorScene, PromptConfig } from "../types";
 import { constructParamBlock, SYSTEM_PROTOCOL_ENFORCEMENT } from "./promptService";
@@ -43,7 +42,7 @@ export const generateScenePlan = async (
   const fullSystemInstruction = `${baseInstruction}\n\n${formatInstruction}\n\n${SYSTEM_PROTOCOL_ENFORCEMENT}`;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-2.5-flash',
     contents: idea,
     config: {
       systemInstruction: fullSystemInstruction,
@@ -64,9 +63,12 @@ export const generateScenePlan = async (
   });
 
   let text = response.text;
-  if (!text) throw new Error("No plan generated");
+  if (!text) {
+      console.error("Gemini response was empty or blocked.");
+      throw new Error("No plan generated (Empty Response)");
+  }
 
-  // Clean up markdown if present
+  // Clean up markdown if present (though responseMimeType usually handles this)
   if (text.includes('```')) {
     text = text.replace(/```json/g, '').replace(/```/g, '').trim();
   }

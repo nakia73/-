@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { VideoSettings, DirectorScene, Translation, ApiKeyData, DirectorTemplate, PromptConfig } from '../types';
 import { generateScenePlan } from '../services/planningService';
@@ -79,7 +78,13 @@ const DirectorPanel: React.FC<DirectorPanelProps> = ({
     }
   };
 
-  const handleDirectorPlan = async (activeKey: string) => {
+  const handleDirectorPlan = async () => {
+    // 1. Strict Check for Gemini Key
+    if (!geminiApiKey) {
+      addToast(t.gen_no_gemini_key || "Gemini API Key required for Director Mode.", "error");
+      return;
+    }
+
     setDirectorState('planning');
     try {
       const selectedTemplate = directorTemplates.find(tmpl => tmpl.id === activeTemplateId);
@@ -88,14 +93,7 @@ const DirectorPanel: React.FC<DirectorPanelProps> = ({
       // Pass config only if enabled
       const configToPass = isConfigEnabled ? promptConfig : undefined;
 
-      // Use the API key from the user's input in App, passed down or fetched here if we changed flow.
-      const keyToUse = geminiApiKey || activeKey; // Fallback to Kie key if no Gemini key
-      
-      if (!keyToUse) {
-           throw new Error("No valid API Key available for planning.");
-      }
-
-      const scenes = await generateScenePlan(keyToUse, directorIdea, directorCount, systemPrompt, configToPass);
+      const scenes = await generateScenePlan(geminiApiKey, directorIdea, directorCount, systemPrompt, configToPass);
       
       const scenesWithImage = scenes.map(s => ({
           ...s,
@@ -106,7 +104,7 @@ const DirectorPanel: React.FC<DirectorPanelProps> = ({
       setDirectorState('review');
       addToast(t.common_success, "success");
     } catch (e: any) {
-      console.error(e);
+      console.error("Director planning error:", e);
       addToast(`${t.common_error}: ${e.message}`, "error");
       setDirectorState('input');
     }
@@ -462,14 +460,7 @@ const DirectorPanel: React.FC<DirectorPanelProps> = ({
           {/* 6. GENERATE BUTTON */}
           <div className="mt-auto pt-4 border-t border-white/5">
               <button
-              onClick={() => {
-                  const activeKey = apiKeys.find(k => k.key && k.key.length > 10 && k.status !== 'error')?.key;
-                  if (activeKey || geminiApiKey) {
-                      handleDirectorPlan(activeKey || '');
-                  } else {
-                      addToast(t.gen_no_key, "error");
-                  }
-              }}
+              onClick={handleDirectorPlan}
               disabled={!directorIdea.trim()}
               className="w-full py-4 bg-secondary hover:bg-cyan-400 text-black font-bold rounded-xl transition-colors disabled:opacity-50 shadow-lg shadow-secondary/20 flex items-center justify-center gap-2"
               >
