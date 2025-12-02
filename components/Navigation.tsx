@@ -89,7 +89,7 @@ const Navigation: React.FC<NavigationProps> = ({
              {/* Account Popup Menu */}
              {showAccountMenu && user && (
                  <div className="absolute bottom-0 left-10 mb-2 ml-2 w-56 bg-surface border border-white/10 rounded-xl shadow-2xl p-4 z-50 animate-fade-in">
-                     <div className="text-xs text-gray-400 mb-1">Signed in as</div>
+                     <div className="text-xs text-gray-400 mb-1">{t.auth_signed_in_as}</div>
                      <div className="text-sm font-bold text-white truncate mb-3 pb-3 border-b border-white/5">{user.email}</div>
                      
                      <button 
@@ -97,7 +97,7 @@ const Navigation: React.FC<NavigationProps> = ({
                         className="w-full flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-red-500/10 text-red-400 hover:text-red-300 transition-colors text-sm"
                      >
                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                         Sign Out
+                         {t.auth_sign_out}
                      </button>
                  </div>
              )}

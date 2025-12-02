@@ -2,7 +2,6 @@
 import { VideoSettings } from "../types";
 
 const BASE_URL = "https://api.kie.ai/api/v1";
-const VEO_URL = `${BASE_URL}/veo`;
 const JOB_URL = `${BASE_URL}/jobs`;
 
 interface KieResponse {
@@ -11,23 +10,20 @@ interface KieResponse {
   data: {
     taskId: string;
     status?: string; 
-    state?: string; // Sora uses 'state'
+    state?: string; 
     videoUrl?: string; 
     url?: string; 
-    resultJson?: string; // Sora returns JSON string
+    resultJson?: string; 
     progress?: number;
     error?: string;
   };
 }
 
-const VEO_MODEL_MAP: Record<string, string> = {
-  'veo-3.1-fast-generate-preview': 'veo3_fast',
-  'veo-3.1-generate-preview': 'veo3', 
-};
-
 // Function to fetch credits
 export const fetchCredits = async (apiKey: string): Promise<number> => {
   try {
+    // Note: Credit endpoint might vary. Keeping chat/credit as generic fallback 
+    // or assuming it shares the same wallet.
     const response = await fetch(`${BASE_URL}/chat/credit`, {
       method: 'GET',
       headers: { 'Authorization': `Bearer ${apiKey}` }
@@ -72,76 +68,69 @@ export const generateVeoVideo = async (
   onStatusUpdate: (status: string) => void
 ): Promise<{blob: Blob, remoteUrl: string}> => {
   
+  const endpoint = `${JOB_URL}/createTask`;
   const isSora = settings.model.startsWith('sora');
   
-  let endpoint = "";
-  let payload: any = {};
-
+  // 1. Determine Model Name
+  let modelName = settings.model;
+  
+  // Specific logic for Sora naming conventions if needed
   if (isSora) {
-     // --- SORA LOGIC ---
-     endpoint = `${JOB_URL}/createTask`;
-     
-     // Determine actual model name based on input
-     let soraModel = settings.model; // e.g. 'sora-2' or 'sora-2-pro'
      const hasImage = !!startImageUrl;
-     
-     if (hasImage) {
-         soraModel = `${soraModel}-image-to-video`;
-     } else {
-         soraModel = `${soraModel}-text-to-video`;
+     // If model is just 'sora-2' or 'sora-2-pro', append type
+     // If it already has it, leave it.
+     if (!modelName.includes('text-to-video') && !modelName.includes('image-to-video')) {
+         if (hasImage) {
+             modelName = `${modelName}-image-to-video`;
+         } else {
+             modelName = `${modelName}-text-to-video`;
+         }
      }
-     
-     // Construct Input
-     const input: any = {
-         prompt: prompt,
-         aspect_ratio: settings.aspectRatio === '16:9' ? 'landscape' : 'portrait',
-         n_frames: settings.duration || "10",
-         remove_watermark: settings.removeWatermark ?? true
-     };
-     
-     if (hasImage && startImageUrl) {
-         input.image_urls = [startImageUrl];
-     }
-     
-     if (settings.model.includes('pro')) {
-         input.size = settings.size || 'standard';
-     }
-
-     payload = {
-         model: soraModel,
-         input: input,
-         callBackUrl: ""
-     };
-     
-  } else {
-     // --- VEO LOGIC ---
-     endpoint = `${VEO_URL}/generate`;
-     const apiModel = VEO_MODEL_MAP[settings.model] || 'veo3_fast';
-     
-     payload = {
-        prompt: prompt,
-        model: apiModel,
-        aspectRatio: settings.aspectRatio,
-        enableTranslation: true, 
-        callBackUrl: "" 
-      };
-
-      const imageUrls: string[] = [];
-      if (startImageUrl) imageUrls.push(startImageUrl);
-      if (endImageUrl) imageUrls.push(endImageUrl);
-
-      if (imageUrls.length > 0) {
-        payload.imageUrls = imageUrls;
-        if (imageUrls.length === 2) {
-          payload.generationType = "FIRST_AND_LAST_FRAMES_2_VIDEO";
-        }
-      } else {
-        payload.generationType = "TEXT_2_VIDEO";
-      }
   }
 
+  // 2. Construct Input Object (Unified for createTask)
+  const input: any = {
+      prompt: prompt,
+      aspect_ratio: settings.aspectRatio === '16:9' ? 'landscape' : 'portrait',
+  };
+
+  // Add specific params based on model type
+  if (isSora) {
+      input.n_frames = settings.duration || "10";
+      input.remove_watermark = settings.removeWatermark ?? true;
+      if (settings.model.includes('pro')) {
+          input.size = settings.size || 'standard';
+      }
+      // Sora Image Input
+      if (startImageUrl) {
+         // Some versions use image_urls (array), some image_url (string). 
+         // Based on doc with resultJson having lists, array is safer or try both if undocumented.
+         // We will use image_urls as array based on typical multi-input patterns.
+         input.image_urls = [startImageUrl];
+      }
+  } else {
+      // Veo Specifics (if any differ from standard)
+      // Veo might use 'image_url' or 'image_urls'. 
+      // We'll pass image_urls array to be consistent with modern Kie APIs.
+      if (startImageUrl) input.image_urls = [startImageUrl];
+      if (endImageUrl) {
+          if (!input.image_urls) input.image_urls = [];
+          input.image_urls.push(endImageUrl);
+      }
+      
+      // Veo sometimes requires explicit generation type in input?
+      // If we use the unified createTask, 'model' usually dictates logic.
+  }
+
+  const payload = {
+      model: modelName,
+      input: input,
+      callBackUrl: "" 
+  };
+
   try {
-    onStatusUpdate(`Requesting ${isSora ? 'Sora' : 'Veo'} Generation...`);
+    onStatusUpdate(`Requesting ${modelName}...`);
+    console.log("[VeoService] Request:", endpoint, JSON.stringify(payload, null, 2));
 
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -154,23 +143,16 @@ export const generateVeoVideo = async (
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.log("API Error Response:", response.status, errorData);
+      console.error("API Error Response:", response.status, errorData);
       
-      if (response.status === 402) {
-        throw new Error("Insufficient Credits (402). Please top up.");
-      }
-      if (response.status === 429) {
-        throw new Error("Rate Limit Exceeded (429).");
-      }
-      throw new Error(`API Request Failed (${response.status}): ${errorData.msg || response.statusText}`);
+      if (response.status === 402) throw new Error("Insufficient Credits (402).");
+      if (response.status === 429) throw new Error("Rate Limit Exceeded (429).");
+      throw new Error(`API Request Failed: ${errorData.msg || errorData.message || response.statusText}`);
     }
 
     const result: KieResponse = await response.json();
     
-    if (result.code === 402) {
-        throw new Error("Insufficient Credits (402).");
-    }
-    
+    if (result.code === 402) throw new Error("Insufficient Credits (402).");
     if (result.code !== 200 || !result.data?.taskId) {
       throw new Error(`Task Rejected: ${result.msg}`);
     }
@@ -186,64 +168,52 @@ export const generateVeoVideo = async (
       await new Promise(resolve => setTimeout(resolve, 5000)); 
       attempts++;
 
-      let statusResponse;
       try {
-        // Polling endpoint differs for Sora vs Veo?
-        // Veo: /veo/tasks/{id}
-        // Sora: /jobs/recordInfo?taskId={id}
+        // Unified Polling Endpoint
+        const pollUrl = `${JOB_URL}/recordInfo?taskId=${taskId}`;
         
-        const pollUrl = isSora 
-            ? `${JOB_URL}/recordInfo?taskId=${taskId}`
-            : `${VEO_URL}/tasks/${taskId}`;
-
-        statusResponse = await fetch(pollUrl, {
+        const statusResponse = await fetch(pollUrl, {
             headers: { 'Authorization': `Bearer ${apiKey}` }
         });
-      } catch (netError) {
-        continue;
-      }
 
-      if (statusResponse.status === 400 && !isSora) {
-         // Only Veo uses 400 for "processing" sometimes (deprecated but observed)
-         // Sora 400 is an error.
-         if (isSora) throw new Error("Bad Request (400) during polling.");
-         onStatusUpdate(`Processing...`);
-         continue;
-      }
-      
-      if (statusResponse.ok) {
-        let statusData;
-        try {
-             statusData = await statusResponse.json();
-        } catch (e) { continue; }
-        
-        const data = statusData.data || {};
-        // Unified status check
-        const status = (data.status || data.state || '').toUpperCase();
-        
-        if (status === 'SUCCEEDED' || status === 'COMPLETED' || status === 'SUCCESS') {
-          // Extraction Logic
-          if (isSora && data.resultJson) {
-              try {
-                  const resObj = JSON.parse(data.resultJson);
-                  videoUrl = resObj.resultUrls?.[0];
-              } catch (e) {
-                  console.error("Failed to parse Sora resultJson", e);
-              }
-          } else {
-              videoUrl = data.videoUrl || data.url;
-          }
+        if (statusResponse.ok) {
+            const statusJson = await statusResponse.json();
+            const data = statusJson.data || {};
+            
+            // Normalize status string
+            const status = (data.state || data.status || '').toUpperCase();
+            console.log(`[VeoService] Poll ${taskId}: ${status}`);
 
-          if (!videoUrl) {
-             onStatusUpdate("Generation done, waiting for URL...");
-             continue;
-          }
-          onStatusUpdate("Success. Fetching video...");
-        } else if (status === 'FAILED' || status === 'FAIL') {
-          throw new Error(`Task Failed: ${data.failMsg || data.error || 'Unknown error'}`);
-        } else {
-           onStatusUpdate(`Status: ${status}...`);
+            if (status === 'SUCCESS' || status === 'SUCCEEDED' || status === 'COMPLETED') {
+                // Success! Extract URL.
+                if (data.resultJson) {
+                    try {
+                        const resObj = JSON.parse(data.resultJson);
+                        // Check common fields
+                        videoUrl = resObj.resultUrls?.[0] || resObj.videoUrl || resObj.url;
+                    } catch (e) {
+                        console.error("Failed to parse resultJson", e);
+                        // Fallback if resultJson is just the url string? Unlikely.
+                    }
+                }
+                
+                // Fallback to direct fields
+                if (!videoUrl) videoUrl = data.videoUrl || data.url;
+
+                if (!videoUrl) {
+                     onStatusUpdate("Generation marked success, but no URL found yet...");
+                } else {
+                     onStatusUpdate("Success. Fetching video...");
+                }
+            } else if (status === 'FAIL' || status === 'FAILED') {
+                throw new Error(`Task Failed: ${data.failMsg || data.error || 'Unknown error'}`);
+            } else {
+                onStatusUpdate(`Status: ${status}...`);
+            }
         }
+      } catch (pollError: any) {
+         if (pollError.message.includes("Task Failed")) throw pollError;
+         console.warn("Polling transient error:", pollError);
       }
     }
 
@@ -253,20 +223,17 @@ export const generateVeoVideo = async (
 
     onStatusUpdate("Downloading video...");
     
-    // Secure download URL
-    // Sora URLs might be external (file.aiquickdraw.com), getDownloadUrl might fail or be unnecessary.
-    // But let's try it, and fallback.
+    // Attempt secure download URL resolution (mostly for Veo)
     let downloadUrl = videoUrl;
     if (!isSora) {
+        // Only try this for Veo or internal storage URLs. 
+        // Sora often returns external expiring links directly.
         downloadUrl = await getDownloadUrl(apiKey, videoUrl);
     }
 
     try {
         const videoRes = await fetch(downloadUrl);
-        if (!videoRes.ok) {
-            // Fallback for Sora if direct fetch fails (CORS?), usually they are public though.
-            throw new Error(`Failed to download video`);
-        }
+        if (!videoRes.ok) throw new Error(`Failed to download video bytes (${videoRes.status})`);
         const videoBlob = await videoRes.blob();
         return { blob: videoBlob, remoteUrl: videoUrl };
     } catch (downloadError: any) {
