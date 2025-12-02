@@ -71,9 +71,9 @@ const DirectorPanel: React.FC<DirectorPanelProps> = ({
     try {
       const url = await uploadFileToKie(file, activeKey);
       setDirectorImage(url);
-      addToast("Reference image uploaded", "success");
+      addToast(t.common_success, "success");
     } catch (error: any) {
-      addToast(`Upload failed: ${error.message}`, "error");
+      addToast(`${t.common_error}: ${error.message}`, "error");
     } finally {
       setUploadingImage(false);
     }
@@ -104,10 +104,10 @@ const DirectorPanel: React.FC<DirectorPanelProps> = ({
       
       setDirectorScenes(scenesWithImage);
       setDirectorState('review');
-      addToast("Production plan generated!", "success");
+      addToast(t.common_success, "success");
     } catch (e: any) {
       console.error(e);
-      addToast(`Planning failed: ${e.message}`, "error");
+      addToast(`${t.common_error}: ${e.message}`, "error");
       setDirectorState('input');
     }
   };
@@ -162,10 +162,10 @@ const DirectorPanel: React.FC<DirectorPanelProps> = ({
   const saveTemplate = () => {
       if (editTmplId) {
           updateTemplate(editTmplId, editTmplName, editTmplPrompt);
-          addToast("Template updated", "success");
+          addToast(t.common_success, "success");
       } else {
           addTemplate(editTmplName, editTmplPrompt);
-          addToast("New template created", "success");
+          addToast(t.common_success, "success");
       }
       setIsEditingTemplate(false);
   };
@@ -173,7 +173,7 @@ const DirectorPanel: React.FC<DirectorPanelProps> = ({
   const saveAsNewTemplate = () => {
       const newName = `${editTmplName} (Copy)`;
       addTemplate(newName, editTmplPrompt);
-      addToast("Saved as new template", "success");
+      addToast(t.common_success, "success");
       setIsEditingTemplate(false);
   };
 
@@ -185,7 +185,7 @@ const DirectorPanel: React.FC<DirectorPanelProps> = ({
               return;
           }
           deleteTemplate(editTmplId);
-          addToast("Template deleted", "info");
+          addToast(t.common_success, "info");
           resetTemplateEditor(); // Reset after delete
       }
   };
@@ -453,8 +453,8 @@ const DirectorPanel: React.FC<DirectorPanelProps> = ({
                     onChange={(e) => setSettings({...settings, aspectRatio: e.target.value as any})}
                     className="w-full bg-surface border border-white/10 rounded-lg p-2 text-sm text-white focus:border-secondary outline-none appearance-none"
                   >
-                    <option value="16:9">16:9 (Landscape)</option>
-                    <option value="9:16">9:16 (Portrait)</option>
+                    <option value="16:9">{t.gen_opt_landscape}</option>
+                    <option value="9:16">{t.gen_opt_portrait}</option>
                   </select>
               </div>
           </div>
@@ -567,8 +567,8 @@ const DirectorPanel: React.FC<DirectorPanelProps> = ({
                             onChange={(e) => setSettings({...settings, aspectRatio: e.target.value as any})}
                             className="w-full bg-black/40 border border-white/10 rounded p-1.5 text-xs text-white focus:border-secondary outline-none"
                         >
-                            <option value="16:9">16:9 (Landscape)</option>
-                            <option value="9:16">9:16 (Portrait)</option>
+                            <option value="16:9">{t.gen_opt_landscape}</option>
+                            <option value="9:16">{t.gen_opt_portrait}</option>
                         </select>
                     </div>
                     
@@ -580,8 +580,8 @@ const DirectorPanel: React.FC<DirectorPanelProps> = ({
                                 onChange={(e) => setSettings({...settings, duration: e.target.value as any})}
                                 className="w-full bg-black/40 border border-white/10 rounded p-1.5 text-xs text-white focus:border-secondary outline-none"
                             >
-                                <option value="10">10s</option>
-                                <option value="15">15s (1.5x)</option>
+                                <option value="10">{t.gen_opt_10s}</option>
+                                <option value="15">{t.gen_opt_15s}</option>
                             </select>
                         </div>
                     ) : (
@@ -592,8 +592,8 @@ const DirectorPanel: React.FC<DirectorPanelProps> = ({
                                 onChange={(e) => setSettings({...settings, resolution: e.target.value as any})}
                                 className="w-full bg-black/40 border border-white/10 rounded p-1.5 text-xs text-white focus:border-secondary outline-none"
                             >
-                                <option value="720p">720p</option>
-                                <option value="1080p">1080p</option>
+                                <option value="720p">{t.gen_opt_720p}</option>
+                                <option value="1080p">{t.gen_opt_1080p}</option>
                             </select>
                         </div>
                     )}

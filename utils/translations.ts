@@ -3,6 +3,20 @@ import { Language } from '../types';
 
 export const translations = {
   en: {
+    // Common
+    common_close: "Close",
+    common_save: "Save Settings",
+    common_saving: "Saving...",
+    common_cancel: "Cancel",
+    common_confirm: "Confirm",
+    common_change: "Change",
+    common_delete: "Delete",
+    common_edit: "Edit",
+    common_copy: "Copy",
+    common_error: "Error",
+    common_success: "Success",
+    common_back: "Back",
+    
     // Navigation
     nav_generate: "Generate",
     nav_assets: "Assets",
@@ -53,6 +67,16 @@ export const translations = {
     gen_processing_img: "Formatting for Sora...",
     gen_no_key: "Active API Key required. Please configure in Settings.",
     gen_no_gemini_key: "Gemini API Key required for prompt generation.",
+
+    // Dropdown Options
+    gen_opt_landscape: "16:9 (Landscape)",
+    gen_opt_portrait: "9:16 (Portrait)",
+    gen_opt_10s: "10 Seconds",
+    gen_opt_15s: "15 Seconds (1.5x Cost)",
+    gen_opt_720p: "720p (Standard)",
+    gen_opt_1080p: "1080p (HQ)",
+    gen_opt_std: "Standard",
+    gen_opt_hq: "High Quality",
     
     // Advanced Prompt Config - STRICTLY SEPARATED
     adv_title_gen: "Prompt Creation", // For Text/Image Mode
@@ -140,10 +164,13 @@ export const translations = {
     hist_retry: "Retry",
     hist_history: "History",
     hist_select_all: "Select All",
+    hist_deselect_all: "Deselect All",
     hist_download_selected: "Download Selected",
     hist_no_videos: "No history",
     hist_missing_file: "File missing",
     hist_missing_desc: "Local file not found. URL might be expired.",
+    hist_link: "Link",
+    hist_try_link: "Try Original Link (May be expired)",
 
     // Video Player
     player_generated: "Generated Result",
@@ -175,7 +202,10 @@ export const translations = {
     
     api_refresh_balance: "Refresh Credits",
     api_remaining: "Credits:",
-    
+    api_top_up: "Top Up",
+    api_total_bal: "Total Cluster Balance",
+    api_credits: "Credits",
+
     api_local_hist_label: "Enable Local History (IndexedDB)",
     api_local_hist_desc: "Save generated videos to browser storage. Allows playback even after link expiration.",
 
@@ -186,9 +216,40 @@ export const translations = {
     modal_agree: "By continuing, you agree to the terms of service.",
     modal_billing: "View Billing Documentation",
     modal_error_expired: "Session expired.",
-    modal_error_fail: "Failed."
+    modal_error_fail: "Failed.",
+
+    // Auth
+    auth_login_title: "Login to Veo Cloud",
+    auth_signup_title: "Create Account",
+    auth_google: "Sign in with Google",
+    auth_or_email: "Or continue with email",
+    auth_email: "Email",
+    auth_password: "Password",
+    auth_btn_login: "Login",
+    auth_btn_signup: "Sign Up",
+    auth_processing: "Processing...",
+    auth_switch_signup: "Don't have an account? Sign Up",
+    auth_switch_login: "Already have an account? Login",
+    auth_sync_btn: "Login / Sync",
+    auth_syncing_to: "Syncing to:",
+    auth_signed_in_as: "Signed in as",
+    auth_sign_out: "Sign Out",
   },
   ja: {
+    // Common
+    common_close: "閉じる",
+    common_save: "設定を保存",
+    common_saving: "保存中...",
+    common_cancel: "キャンセル",
+    common_confirm: "確認",
+    common_change: "変更",
+    common_delete: "削除",
+    common_edit: "編集",
+    common_copy: "コピー",
+    common_error: "エラー",
+    common_success: "成功",
+    common_back: "戻る",
+
     // Navigation
     nav_generate: "生成",
     nav_assets: "アセット",
@@ -239,6 +300,16 @@ export const translations = {
     gen_processing_img: "Sora用に整形中...",
     gen_no_key: "有効なAPIキーが必要です。設定画面を確認してください。",
     gen_no_gemini_key: "プロンプト生成にはGemini APIキーが必要です。",
+
+    // Dropdown Options
+    gen_opt_landscape: "16:9 (横長)",
+    gen_opt_portrait: "9:16 (縦長)",
+    gen_opt_10s: "10秒",
+    gen_opt_15s: "15秒 (1.5倍コスト)",
+    gen_opt_720p: "720p (標準)",
+    gen_opt_1080p: "1080p (高画質)",
+    gen_opt_std: "標準",
+    gen_opt_hq: "高品質",
 
     // Advanced Prompt Config - STRICTLY SEPARATED
     adv_title_gen: "プロンプト作成", // Standard Mode
@@ -326,10 +397,13 @@ export const translations = {
     hist_retry: "再試行",
     hist_history: "生成履歴",
     hist_select_all: "全選択",
+    hist_deselect_all: "全選択解除",
     hist_download_selected: "一括ダウンロード",
     hist_no_videos: "履歴なし",
     hist_missing_file: "ファイルなし",
     hist_missing_desc: "ローカルに保存されていません。URL期限切れの可能性があります。",
+    hist_link: "リンク",
+    hist_try_link: "元リンクを開く (期限切れの可能性あり)",
 
     // Video Player
     player_generated: "生成結果",
@@ -361,6 +435,9 @@ export const translations = {
     
     api_refresh_balance: "残高を更新",
     api_remaining: "残高:",
+    api_top_up: "チャージ",
+    api_total_bal: "クラスタ残高合計",
+    api_credits: "クレジット",
 
     api_local_hist_label: "ローカル履歴保存 (IndexedDB)",
     api_local_hist_desc: "生成された動画をブラウザ内に保存します。URL期限切れ後も再生可能になります。",
@@ -372,6 +449,23 @@ export const translations = {
     modal_agree: "続行することで、利用規約に同意したものとみなされます。",
     modal_billing: "請求ドキュメントを表示",
     modal_error_expired: "セッション切れです。",
-    modal_error_fail: "失敗しました。"
+    modal_error_fail: "失敗しました。",
+
+    // Auth
+    auth_login_title: "Veo Cloudへログイン",
+    auth_signup_title: "アカウント作成",
+    auth_google: "Googleでログイン",
+    auth_or_email: "またはメールアドレスで続行",
+    auth_email: "メールアドレス",
+    auth_password: "パスワード",
+    auth_btn_login: "ログイン",
+    auth_btn_signup: "登録",
+    auth_processing: "処理中...",
+    auth_switch_signup: "アカウントをお持ちでないですか？ 登録",
+    auth_switch_login: "すでにアカウントをお持ちですか？ ログイン",
+    auth_sync_btn: "ログイン・同期",
+    auth_syncing_to: "同期中:",
+    auth_signed_in_as: "ログイン中:",
+    auth_sign_out: "ログアウト",
   }
 };

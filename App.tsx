@@ -48,6 +48,10 @@ const VeoStudioApp: React.FC = () => {
   const [hideEmail, setHideEmail] = useState(true);
 
   useEffect(() => {
+      setEnableLocalHistory(enableLocalHistory);
+  }, [enableLocalHistory, setEnableLocalHistory]);
+
+  useEffect(() => {
       if (user) {
           setTimeout(() => loadHistory(user.id), 100);
       }

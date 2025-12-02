@@ -85,7 +85,7 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ history, tasks, onSelec
            <h3 className="text-xs font-bold text-white uppercase tracking-wider">{t.hist_history}</h3>
            {history.length > 0 && (
              <button onClick={toggleSelectAll} className="text-[10px] text-primary hover:underline">
-                {selectedIds.size === history.length ? 'Deselect All' : t.hist_select_all}
+                {selectedIds.size === history.length ? t.hist_deselect_all : t.hist_select_all}
              </button>
            )}
         </div>
@@ -148,9 +148,9 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ history, tasks, onSelec
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="absolute bottom-2 right-2 p-1 bg-white/10 hover:bg-white/20 rounded text-[10px] text-gray-300"
-                        title="Try Original Link (May be expired)"
+                        title={t.hist_try_link}
                     >
-                        Link
+                        {t.hist_link}
                     </a>
                 )}
               </div>

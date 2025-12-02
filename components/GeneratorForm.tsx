@@ -156,10 +156,10 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
 
       const url = await uploadFileToKie(fileToUpload, apiKey);
       if (isStart) setStartImageUrl(url); else setEndImageUrl(url);
-      addToast("Image uploaded successfully", "success");
+      addToast(t.common_success, "success");
     } catch (error: any) {
       console.error("Upload failed", error);
-      addToast(`Upload failed: ${error.message}`, "error");
+      addToast(`${t.common_error}: ${error.message}`, "error");
     } finally {
       setUploading(false);
       if (isStart && startFileRef.current) startFileRef.current.value = '';
@@ -175,7 +175,7 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
 
     const apiKey = geminiApiKey; 
     if (!apiKey) {
-      addToast(t.gen_no_gemini_key || "Gemini API Key required in Settings.", 'error');
+      addToast(t.gen_no_gemini_key || "Gemini API Key required.", 'error');
       return;
     }
     
@@ -186,9 +186,9 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
 
         const enhanced = await generateEnhancedPrompt(apiKey, draftIdea, promptConfig, enhancerModel, metaPrompt);
         setPrompt(enhanced);
-        addToast("Prompt generated and applied!", "success");
+        addToast(t.common_success, "success");
     } catch (error: any) {
-        addToast("Generation failed: " + error.message, "error");
+        addToast(`${t.common_error}: ${error.message}`, "error");
     } finally {
         setIsEnhancing(false);
     }
@@ -214,17 +214,17 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
       
       if (localMetaId) {
           updatePromptTemplate(localMetaId, localMetaName, localMetaContent);
-          addToast("Template updated", "success");
+          addToast(t.common_success, "success");
       } else {
           addPromptTemplate(localMetaName, localMetaContent);
-          addToast("New template saved", "success");
+          addToast(t.common_success, "success");
       }
   };
 
   const handleSaveAsNew = () => {
       const newName = `${localMetaName} (Copy)`;
       addPromptTemplate(newName, localMetaContent);
-      addToast("Saved as new template", "success");
+      addToast(t.common_success, "success");
   };
 
   const handleDeleteMetaTemplate = () => {
@@ -235,7 +235,7 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
               return;
           }
           deletePromptTemplate(localMetaId);
-          addToast("Template deleted", "info");
+          addToast(t.common_success, "info");
           resetMetaEditor();
       }
   };
@@ -490,7 +490,7 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
                      {startImageUrl ? (
                         <div className="relative h-32 w-full">
                            <img src={startImageUrl} className="w-full h-full object-contain rounded" alt="Start frame" />
-                           <div className="absolute top-0 right-0 bg-black/50 p-1 rounded text-xs text-white">Change</div>
+                           <div className="absolute top-0 right-0 bg-black/50 p-1 rounded text-xs text-white">{t.common_change}</div>
                         </div>
                      ) : (
                         <div className="text-gray-500 text-sm">
@@ -517,7 +517,7 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
                         {endImageUrl ? (
                             <div className="relative h-32 w-full">
                             <img src={endImageUrl} className="w-full h-full object-contain rounded" alt="End frame" />
-                            <div className="absolute top-0 right-0 bg-black/50 p-1 rounded text-xs text-white">Change</div>
+                            <div className="absolute top-0 right-0 bg-black/50 p-1 rounded text-xs text-white">{t.common_change}</div>
                             </div>
                         ) : (
                             <div className="text-gray-500 text-sm">
@@ -578,8 +578,8 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
                     onChange={(e) => setSettings({...settings, aspectRatio: e.target.value as any})}
                     className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-primary outline-none appearance-none"
                   >
-                    <option value="16:9">16:9 (Landscape)</option>
-                    <option value="9:16">9:16 (Portrait)</option>
+                    <option value="16:9">{t.gen_opt_landscape}</option>
+                    <option value="9:16">{t.gen_opt_portrait}</option>
                   </select>
                 </div>
 
@@ -591,8 +591,8 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
                         onChange={(e) => setSettings({...settings, duration: e.target.value as any})}
                         className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-primary outline-none appearance-none"
                     >
-                        <option value="10">10 Seconds</option>
-                        <option value="15">15 Seconds (1.5x Cost)</option>
+                        <option value="10">{t.gen_opt_10s}</option>
+                        <option value="15">{t.gen_opt_15s}</option>
                     </select>
                     </div>
                 ) : (
@@ -603,8 +603,8 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
                         onChange={(e) => setSettings({...settings, resolution: e.target.value as any})}
                         className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-primary outline-none appearance-none"
                     >
-                        <option value="720p">720p</option>
-                        <option value="1080p">1080p (HQ)</option>
+                        <option value="720p">{t.gen_opt_720p}</option>
+                        <option value="1080p">{t.gen_opt_1080p}</option>
                     </select>
                     </div>
                 )}
@@ -618,8 +618,8 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
                         onChange={(e) => setSettings({...settings, size: e.target.value as any})}
                         className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-primary outline-none appearance-none"
                     >
-                        <option value="standard">Standard</option>
-                        <option value="high">High Quality</option>
+                        <option value="standard">{t.gen_opt_std}</option>
+                        <option value="high">{t.gen_opt_hq}</option>
                     </select>
                  </div>
               )}

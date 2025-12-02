@@ -4,24 +4,25 @@ import { AppSettings, ApiKeyData, DirectorTemplate, PromptTemplate } from '../ty
 import { encrypt, decrypt } from '../lib/encryption';
 import { DEFAULT_BASE_SYSTEM_PROMPT } from './promptService';
 
-const LOCAL_STORAGE_KEYS_KEY = 'veo_api_keys';
-const LOCAL_STORAGE_GEMINI_KEY = 'veo_gemini_key'; // New storage key
+// Removed Keys for API/Templates to prevent local storage conflicts
+// const LOCAL_STORAGE_KEYS_KEY = 'veo_api_keys';
+// const LOCAL_STORAGE_GEMINI_KEY = 'veo_gemini_key';
+// const LOCAL_STORAGE_TEMPLATES_KEY = 'veo_director_templates';
+// const LOCAL_STORAGE_ACTIVE_TMPL_KEY = 'veo_active_template';
+// const LOCAL_STORAGE_PROMPT_TEMPLATES_KEY = 'veo_prompt_templates';
+// const LOCAL_STORAGE_ACTIVE_PROMPT_TMPL_KEY = 'veo_active_prompt_template';
+
+// Keep UI preferences local as they are device specific
 const LOCAL_STORAGE_WARN_KEY = 'veo_suppress_warn';
 const LOCAL_STORAGE_HISTORY_KEY = 'veo_local_history';
-const LOCAL_STORAGE_TEMPLATES_KEY = 'veo_director_templates';
-const LOCAL_STORAGE_ACTIVE_TMPL_KEY = 'veo_active_template';
-
-// New Keys for Prompt Generator Templates
-const LOCAL_STORAGE_PROMPT_TEMPLATES_KEY = 'veo_prompt_templates';
-const LOCAL_STORAGE_ACTIVE_PROMPT_TMPL_KEY = 'veo_active_prompt_template';
 
 const ENCRYPTION_SECRET = 'kie-studio-secure-storage'; 
 
 const DEFAULT_DIRECTOR_TEMPLATES: DirectorTemplate[] = [
   {
     id: 'tmpl_sora_expert',
-    name: 'Sora2エキスパート', // Updated name per request
-    systemPrompt: DEFAULT_BASE_SYSTEM_PROMPT, // Use the standardized prompt
+    name: 'Sora2エキスパート', 
+    systemPrompt: DEFAULT_BASE_SYSTEM_PROMPT, 
     isDefault: true
   },
   {
@@ -41,7 +42,7 @@ Focus on:
 const DEFAULT_PROMPT_TEMPLATES: PromptTemplate[] = [
   {
     id: 'pt_sora_expert',
-    name: 'Sora2エキスパート', // Consistency for single mode too
+    name: 'Sora2エキスパート', 
     template: DEFAULT_BASE_SYSTEM_PROMPT,
     isDefault: true
   },
@@ -53,72 +54,30 @@ const DEFAULT_PROMPT_TEMPLATES: PromptTemplate[] = [
   }
 ];
 
-// Helper to get local data
+// Helper to get local data (Restricted to UI prefs only)
 const getLocalSettings = async (): Promise<AppSettings> => {
   const suppressWarning = localStorage.getItem(LOCAL_STORAGE_WARN_KEY) === 'true';
   const enableLocalHistory = localStorage.getItem(LOCAL_STORAGE_HISTORY_KEY) === 'true';
   
-  // Decrypt Gemini Key from Local Storage
-  const encryptedGeminiKey = localStorage.getItem(LOCAL_STORAGE_GEMINI_KEY) || '';
-  let geminiApiKey = '';
-  if (encryptedGeminiKey) {
-      geminiApiKey = await decrypt(encryptedGeminiKey, ENCRYPTION_SECRET);
-  }
+  // Do NOT load keys from local storage anymore
+  const apiKeys: ApiKeyData[] = Array.from({ length: 3 }).map((_, i) => ({
+    id: `key-${i}`,
+    key: '',
+    activeRequests: 0,
+    status: 'idle',
+    totalGenerated: 0
+  }));
+
+  // Do NOT load templates from local storage anymore
+  const directorTemplates: DirectorTemplate[] = DEFAULT_DIRECTOR_TEMPLATES;
+  const activeTemplateId = 'tmpl_sora_expert';
   
-  const keysJson = localStorage.getItem(LOCAL_STORAGE_KEYS_KEY);
-  const dirTemplatesJson = localStorage.getItem(LOCAL_STORAGE_TEMPLATES_KEY);
-  const activeTemplateId = localStorage.getItem(LOCAL_STORAGE_ACTIVE_TMPL_KEY) || 'tmpl_sora_expert';
+  const promptTemplates: PromptTemplate[] = DEFAULT_PROMPT_TEMPLATES;
+  const activePromptTemplateId = 'pt_sora_expert';
   
-  const promptTemplatesJson = localStorage.getItem(LOCAL_STORAGE_PROMPT_TEMPLATES_KEY);
-  const activePromptTemplateId = localStorage.getItem(LOCAL_STORAGE_ACTIVE_PROMPT_TMPL_KEY) || 'pt_sora_expert';
-  
-  let apiKeys: ApiKeyData[] = [];
-  if (keysJson) {
-    try {
-      const parsedKeys = JSON.parse(keysJson);
-      // Decrypt Local Keys
-      apiKeys = await Promise.all(parsedKeys.map(async (k: any) => ({
-          ...k,
-          key: k.key ? await decrypt(k.key, ENCRYPTION_SECRET) : ''
-      })));
-    } catch (e) {
-      console.error("Failed to parse/decrypt local keys", e);
-    }
-  }
-
-  if (apiKeys.length === 0) {
-    apiKeys = Array.from({ length: 3 }).map((_, i) => ({
-      id: `key-${i}`,
-      key: '',
-      activeRequests: 0,
-      status: 'idle',
-      totalGenerated: 0
-    }));
-  }
-
-  let directorTemplates: DirectorTemplate[] = DEFAULT_DIRECTOR_TEMPLATES;
-  if (dirTemplatesJson) {
-      try {
-          const saved = JSON.parse(dirTemplatesJson);
-          if (Array.isArray(saved) && saved.length > 0) {
-              directorTemplates = saved;
-          }
-      } catch (e) { console.error(e); }
-  }
-
-  let promptTemplates: PromptTemplate[] = DEFAULT_PROMPT_TEMPLATES;
-  if (promptTemplatesJson) {
-      try {
-          const saved = JSON.parse(promptTemplatesJson);
-          if (Array.isArray(saved) && saved.length > 0) {
-              promptTemplates = saved;
-          }
-      } catch (e) { console.error(e); }
-  }
-
   return {
     apiKeys,
-    geminiApiKey,
+    geminiApiKey: '', // Start empty
     suppressQualityWarning: suppressWarning,
     enableLocalHistory,
     directorTemplates,
@@ -130,30 +89,16 @@ const getLocalSettings = async (): Promise<AppSettings> => {
 };
 
 export const saveLocalSettings = async (settings: AppSettings) => {
-  // Encrypt Keys before saving to Local Storage
-  const encryptedKeys = await Promise.all(settings.apiKeys.map(async (k) => ({
-      ...k,
-      key: k.key ? await encrypt(k.key, ENCRYPTION_SECRET) : ''
-  })));
-  localStorage.setItem(LOCAL_STORAGE_KEYS_KEY, JSON.stringify(encryptedKeys));
-
-  if (settings.geminiApiKey !== undefined) {
-      const encryptedGemini = await encrypt(settings.geminiApiKey, ENCRYPTION_SECRET);
-      localStorage.setItem(LOCAL_STORAGE_GEMINI_KEY, encryptedGemini);
-  }
-
+  // We ONLY save UI preferences to local storage now.
+  // API Keys and Templates are no longer persisted locally to avoid user conflicts.
+  
   localStorage.setItem(LOCAL_STORAGE_WARN_KEY, String(settings.suppressQualityWarning));
   localStorage.setItem(LOCAL_STORAGE_HISTORY_KEY, String(settings.enableLocalHistory));
   
-  localStorage.setItem(LOCAL_STORAGE_TEMPLATES_KEY, JSON.stringify(settings.directorTemplates));
-  if (settings.activeTemplateId) {
-      localStorage.setItem(LOCAL_STORAGE_ACTIVE_TMPL_KEY, settings.activeTemplateId);
-  }
-
-  localStorage.setItem(LOCAL_STORAGE_PROMPT_TEMPLATES_KEY, JSON.stringify(settings.promptTemplates));
-  if (settings.activePromptTemplateId) {
-      localStorage.setItem(LOCAL_STORAGE_ACTIVE_PROMPT_TMPL_KEY, settings.activePromptTemplateId);
-  }
+  // Explicitly removed:
+  // - API Keys
+  // - Gemini Key
+  // - Templates
 };
 
 export const loadSettings = async (userId?: string): Promise<AppSettings> => {
@@ -194,7 +139,7 @@ export const loadSettings = async (userId?: string): Promise<AppSettings> => {
           activePromptTemplateId: cloudSettings.activePromptTemplateId || 'pt_sora_expert'
       };
 
-      // Save to local storage (now encrypted by saveLocalSettings)
+      // Update local UI prefs based on cloud settings (optional but good for consistency)
       await saveLocalSettings(decryptedSettings);
       return decryptedSettings;
     }
@@ -206,9 +151,10 @@ export const loadSettings = async (userId?: string): Promise<AppSettings> => {
 };
 
 export const saveCloudSettings = async (userId: string, settings: AppSettings) => {
-  // Save locally first (Encrypts automatically)
+  // Save UI preferences locally
   await saveLocalSettings(settings);
 
+  // If no user, we do not persist keys/templates anywhere (Session only)
   if (!userId || userId === 'local-fallback') {
     return;
   }

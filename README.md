@@ -6,8 +6,6 @@
 
 This contains everything you need to run your app locally.
 
-**Note:** This is a verification commit to test the PR workflow.
-
 View your app in AI Studio: https://ai.studio/apps/drive/1T9qf5DFI42sj_SX84aS6DBvzvhfyMEsy
 
 ## Run Locally

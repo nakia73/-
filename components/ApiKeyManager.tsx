@@ -98,7 +98,7 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({
             </h2>
             <div className="flex items-center gap-2 mt-1">
                <p className="text-gray-400 text-sm">{t.api_desc}</p>
-               {userEmail && <span className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">Syncing to: {userEmail}</span>}
+               {userEmail && <span className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">{t.auth_syncing_to} {userEmail}</span>}
             </div>
           </div>
           
@@ -112,7 +112,7 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({
                  className="px-3 py-1.5 bg-secondary/10 hover:bg-secondary/20 text-secondary text-xs font-bold rounded-lg border border-secondary/30 flex items-center gap-1 transition-colors"
                >
                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                 Login / Sync
+                 {t.auth_sync_btn}
                </button>
              )}
              <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
@@ -128,7 +128,7 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({
              <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent pointer-events-none"></div>
              <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-1">
-                    <h4 className="text-xs text-gray-400 uppercase tracking-wider">Total Cluster Balance</h4>
+                    <h4 className="text-xs text-gray-400 uppercase tracking-wider">{t.api_total_bal}</h4>
                     <div className="group relative inline-block">
                         <svg className="w-3.5 h-3.5 text-gray-500 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         <div className="absolute left-0 bottom-full mb-2 w-48 bg-black border border-white/20 p-2 rounded text-[10px] text-gray-300 hidden group-hover:block z-20">
@@ -145,13 +145,13 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({
                     </button>
                 </div>
                 <div className="text-2xl font-bold text-white font-mono flex items-baseline gap-3">
-                    <span>{totalCredits.toLocaleString()} <span className="text-sm text-gray-500 font-sans">Credits</span></span>
+                    <span>{totalCredits.toLocaleString()} <span className="text-sm text-gray-500 font-sans">{t.api_credits}</span></span>
                     <span className="text-green-400 text-lg">${totalValue.toFixed(2)}</span>
                 </div>
              </div>
              <div className="flex gap-3 relative z-10">
                  <a href="https://kie.ai/billing" target="_blank" className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-bold text-white border border-white/10">
-                    Top Up
+                    {t.api_top_up}
                  </a>
              </div>
           </div>
@@ -310,7 +310,7 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({
            
            <div className="flex gap-3">
               <button onClick={onClose} className="px-4 py-2 text-gray-400 hover:text-white text-sm">
-                Close
+                {t.common_close}
               </button>
               <button 
                 onClick={onSave}
@@ -320,12 +320,12 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({
                 {isSaving ? (
                    <>
                      <div className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                     Saving...
+                     {t.common_saving}
                    </>
                 ) : (
                    <>
                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
-                     Save Settings
+                     {t.common_save}
                    </>
                 )}
               </button>
