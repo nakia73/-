@@ -1,22 +1,14 @@
-
 import { supabase } from '../lib/supabase';
 import { AppSettings, ApiKeyData, DirectorTemplate, PromptTemplate } from '../types';
 import { encrypt, decrypt } from '../lib/encryption';
 import { DEFAULT_BASE_SYSTEM_PROMPT } from './promptService';
 
-// Removed Keys for API/Templates to prevent local storage conflicts
-// const LOCAL_STORAGE_KEYS_KEY = 'veo_api_keys';
-// const LOCAL_STORAGE_GEMINI_KEY = 'veo_gemini_key';
-// const LOCAL_STORAGE_TEMPLATES_KEY = 'veo_director_templates';
-// const LOCAL_STORAGE_ACTIVE_TMPL_KEY = 'veo_active_template';
-// const LOCAL_STORAGE_PROMPT_TEMPLATES_KEY = 'veo_prompt_templates';
-// const LOCAL_STORAGE_ACTIVE_PROMPT_TMPL_KEY = 'veo_active_prompt_template';
-
-// Keep UI preferences local as they are device specific
+// UI preferences
 const LOCAL_STORAGE_WARN_KEY = 'veo_suppress_warn';
 const LOCAL_STORAGE_HISTORY_KEY = 'veo_local_history';
 
 const ENCRYPTION_SECRET = 'kie-studio-secure-storage'; 
+const DEFAULT_API_KEY_COUNT = 10; // Increased from 3 to 10
 
 const DEFAULT_DIRECTOR_TEMPLATES: DirectorTemplate[] = [
   {
@@ -59,8 +51,8 @@ const getLocalSettings = async (): Promise<AppSettings> => {
   const suppressWarning = localStorage.getItem(LOCAL_STORAGE_WARN_KEY) === 'true';
   const enableLocalHistory = localStorage.getItem(LOCAL_STORAGE_HISTORY_KEY) === 'true';
   
-  // Do NOT load keys from local storage anymore
-  const apiKeys: ApiKeyData[] = Array.from({ length: 3 }).map((_, i) => ({
+  // Default 10 empty keys
+  const apiKeys: ApiKeyData[] = Array.from({ length: DEFAULT_API_KEY_COUNT }).map((_, i) => ({
     id: `key-${i}`,
     key: '',
     activeRequests: 0,
@@ -68,7 +60,6 @@ const getLocalSettings = async (): Promise<AppSettings> => {
     totalGenerated: 0
   }));
 
-  // Do NOT load templates from local storage anymore
   const directorTemplates: DirectorTemplate[] = DEFAULT_DIRECTOR_TEMPLATES;
   const activeTemplateId = 'tmpl_sora_expert';
   
@@ -89,16 +80,8 @@ const getLocalSettings = async (): Promise<AppSettings> => {
 };
 
 export const saveLocalSettings = async (settings: AppSettings) => {
-  // We ONLY save UI preferences to local storage now.
-  // API Keys and Templates are no longer persisted locally to avoid user conflicts.
-  
   localStorage.setItem(LOCAL_STORAGE_WARN_KEY, String(settings.suppressQualityWarning));
   localStorage.setItem(LOCAL_STORAGE_HISTORY_KEY, String(settings.enableLocalHistory));
-  
-  // Explicitly removed:
-  // - API Keys
-  // - Gemini Key
-  // - Templates
 };
 
 export const loadSettings = async (userId?: string): Promise<AppSettings> => {
@@ -118,8 +101,22 @@ export const loadSettings = async (userId?: string): Promise<AppSettings> => {
     if (data && data.settings) {
       const cloudSettings = data.settings as AppSettings;
       
+      // Ensure we have 10 keys even if cloud data has fewer (legacy support)
+      let loadedKeys = cloudSettings.apiKeys || [];
+      if (loadedKeys.length < DEFAULT_API_KEY_COUNT) {
+          const currentCount = loadedKeys.length;
+          const padding: ApiKeyData[] = Array.from({ length: DEFAULT_API_KEY_COUNT - currentCount }).map((_, i) => ({
+            id: `key-${currentCount + i}`,
+            key: '',
+            activeRequests: 0,
+            status: 'idle',
+            totalGenerated: 0
+          }));
+          loadedKeys = [...loadedKeys, ...padding];
+      }
+
       // Decrypt Kie API Keys (Cloud)
-      const decryptedKeys = await Promise.all(cloudSettings.apiKeys.map(async (k) => ({
+      const decryptedKeys = await Promise.all(loadedKeys.map(async (k) => ({
           ...k,
           key: k.key ? await decrypt(k.key, ENCRYPTION_SECRET) : ''
       })));
@@ -139,7 +136,7 @@ export const loadSettings = async (userId?: string): Promise<AppSettings> => {
           activePromptTemplateId: cloudSettings.activePromptTemplateId || 'pt_sora_expert'
       };
 
-      // Update local UI prefs based on cloud settings (optional but good for consistency)
+      // Update local UI prefs
       await saveLocalSettings(decryptedSettings);
       return decryptedSettings;
     }
