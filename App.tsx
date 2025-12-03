@@ -129,15 +129,30 @@ const VeoStudioApp: React.FC = () => {
         {/* Top Bar */}
         <header className="h-14 border-b border-white/5 flex items-center justify-between px-6 bg-[#09090b]/80 backdrop-blur z-20">
            <div className="flex items-center gap-4">
+              {/* Logo Section - Expects logo.svg in public folder */}
               <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-primary rounded-full shadow-[0_0_8px_rgba(190,242,100,0.6)] animate-pulse"></div>
-                  <span className="font-bold text-lg tracking-tight text-white">Sonic-GEN</span>
-                  <span className="text-[9px] bg-white/5 px-1.5 py-0.5 rounded text-gray-400 border border-white/5 tracking-wider font-mono">STUDIO</span>
+                  <img 
+                    src="/logo.svg" 
+                    alt="Sonic-GEN" 
+                    className="h-9 w-auto object-contain max-w-[200px]"
+                    onError={(e) => {
+                        // Fallback to text logo if image is missing
+                        e.currentTarget.style.display = 'none';
+                        document.getElementById('fallback-logo')?.classList.remove('hidden');
+                    }}
+                  />
+                  {/* Fallback Text Logo */}
+                  <div id="fallback-logo" className="hidden flex items-center gap-2">
+                      <div className="w-2 h-2 bg-primary rounded-full shadow-[0_0_8px_rgba(190,242,100,0.6)] animate-pulse"></div>
+                      <span className="font-bold text-lg tracking-tight text-white">Sonic-GEN</span>
+                  </div>
+
+                  <span className="text-[9px] bg-white/5 px-1.5 py-0.5 rounded text-gray-400 border border-white/5 tracking-wider font-mono self-center mt-0.5">STUDIO</span>
               </div>
 
               {user && (
                   <>
-                    <div className="h-4 w-[1px] bg-white/10"></div>
+                    <div className="h-4 w-[1px] bg-white/10 ml-2"></div>
                     <div className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-white/5 transition-colors cursor-pointer group" onClick={() => setHideEmail(!hideEmail)}>
                         <span className="text-xs text-gray-500 group-hover:text-gray-300 transition-colors font-mono">
                             {hideEmail ? '***@***.***' : user.email}
