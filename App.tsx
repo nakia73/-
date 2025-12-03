@@ -129,12 +129,12 @@ const VeoStudioApp: React.FC = () => {
         {/* Top Bar */}
         <header className="h-14 border-b border-white/5 flex items-center justify-between px-6 bg-[#09090b]/80 backdrop-blur z-20">
            <div className="flex items-center gap-4">
-              {/* Logo Section - Expects logo.svg in public folder */}
+              {/* Logo Section */}
               <div className="flex items-center gap-2">
                   <img 
-                    src="/logo.svg" 
+                    src="./logo.svg" 
                     alt="Sonic-GEN" 
-                    className="h-9 w-auto object-contain max-w-[200px]"
+                    className="h-10 w-auto object-contain max-w-[200px]"
                     onError={(e) => {
                         // Fallback to text logo if image is missing
                         e.currentTarget.style.display = 'none';

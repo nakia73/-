@@ -38,71 +38,74 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ history, tasks, onSelec
   const handleBulkDownload = async () => {
     if (selectedIds.size === 0) return;
     setIsZipping(true);
-    setZipProgress('Init...');
+    setZipProgress('Initializing...');
 
     try {
-      // Ensure JSZip is instantiated correctly regardless of import style
+      // Ensure JSZip is instantiated correctly with fallback
       const ZipClass = (JSZip as any).default || JSZip;
       const zip = new ZipClass();
       
       const idsToDownload = Array.from(selectedIds);
       const dateStr = new Date().toISOString().slice(0, 10);
       const folderName = `sonic-gen-batch-${dateStr}`;
-      const folder = zip.folder(folderName);
+      
+      // Parallel fetch for speed
+      setZipProgress(`Fetching ${idsToDownload.length} files...`);
+      
+      const results = await Promise.all(idsToDownload.map(async (id, idx) => {
+          const video = history.find(v => v.id === id);
+          if (!video) return null;
 
-      if (!folder) throw new Error("Failed to initialize zip folder");
+          // Update progress text occasionally
+          if (idx % 3 === 0) setZipProgress(`Fetching ${idx + 1}/${idsToDownload.length}...`);
 
-      let successCount = 0;
-      let failCount = 0;
-
-      // Process files sequentially to update progress properly
-      for (let i = 0; i < idsToDownload.length; i++) {
-        const id = idsToDownload[i];
-        setZipProgress(`${i + 1}/${idsToDownload.length}`);
-        
-        const video = history.find(v => v.id === id);
-        if (!video) continue;
-
-        let blobData = video.blob;
-
-        // If no local blob, try to fetch from URL
-        if (!blobData && video.url) {
-           try {
-             const response = await fetch(video.url);
-             if (response.ok) {
-                blobData = await response.blob();
-             } else {
-                console.warn(`Fetch failed for ${id}: ${response.status}`);
+          let blobData = video.blob;
+          
+          // Try to fetch if no local blob exists
+          if (!blobData && video.url) {
+             try {
+                 const response = await fetch(video.url);
+                 if (response.ok) {
+                     blobData = await response.blob();
+                 } else {
+                     console.warn(`Fetch failed ${response.status} for ${id}`);
+                 }
+             } catch (e) {
+                 console.warn(`Fetch error for ${id}`, e);
              }
-           } catch (e) {
-             console.error(`Failed to fetch video ${id}`, e);
-           }
-        }
+          }
 
-        if (blobData) {
-           // Clean filename
-           const safePrompt = (video.prompt || "video").slice(0, 30).replace(/[^a-z0-9]/gi, '_');
-           const filename = `${id.slice(0,6)}_${safePrompt}.mp4`;
-           folder.file(filename, blobData);
-           successCount++;
-        } else {
-           failCount++;
-        }
-      }
+          if (blobData) {
+              const safePrompt = (video.prompt || "video").slice(0, 30).replace(/[^a-z0-9]/gi, '_');
+              const filename = `${id.slice(0,6)}_${safePrompt}.mp4`;
+              return { name: filename, data: blobData };
+          }
+          return null;
+      }));
+
+      // Add successful fetches to zip
+      let successCount = 0;
+      results.forEach(res => {
+          if (res) {
+              zip.file(res.name, res.data);
+              successCount++;
+          }
+      });
 
       if (successCount === 0) {
-        alert("Failed to retrieve any video data. Links might be expired.");
+        alert("Failed to retrieve any video data. Links might be expired or blocked by CORS.");
         setIsZipping(false);
         setZipProgress('');
         return;
       }
 
-      setZipProgress('Compiling...');
+      setZipProgress('Compressing ZIP...');
+      
       // Generate ZIP
       const content = await zip.generateAsync({ type: "blob" });
       const zipUrl = URL.createObjectURL(content);
 
-      // Trigger Download
+      // Trigger Single Download
       const a = document.createElement('a');
       a.href = zipUrl;
       a.download = `${folderName}.zip`;
@@ -196,7 +199,7 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ history, tasks, onSelec
                  {isZipping ? (
                    <>
                       <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                      <span>{zipProgress || 'Zipping...'}</span>
+                      <span>{zipProgress}</span>
                    </>
                  ) : (
                    <>
@@ -244,7 +247,6 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ history, tasks, onSelec
                   type="checkbox" 
                   checked={isSelected}
                   onChange={() => toggleSelection(video.id)}
-                  // Allow selecting remote files too for zipping (we will fetch them)
                   className="w-3.5 h-3.5 rounded border-white/20 bg-black checked:bg-primary checked:border-primary text-primary focus:ring-0 cursor-pointer disabled:opacity-20 transition-all appearance-none border checked:after:content-['✓'] checked:after:text-black checked:after:text-[10px] checked:after:flex checked:after:justify-center checked:after:items-center"
                 />
               </div>

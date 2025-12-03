@@ -1,3 +1,4 @@
+
 import { supabase } from '../lib/supabase';
 import { AppSettings, ApiKeyData, DirectorTemplate, PromptTemplate } from '../types';
 import { encrypt, decrypt } from '../lib/encryption';
@@ -96,7 +97,11 @@ export const loadSettings = async (userId?: string): Promise<AppSettings> => {
       .eq('user_id', userId)
       .single();
 
-    if (error) return await getLocalSettings();
+    if (error) {
+        // Table might not exist yet, just return local defaults
+        if (error.code === '42P01') console.warn("Settings table not found. Using defaults.");
+        return await getLocalSettings();
+    }
 
     if (data && data.settings) {
       const cloudSettings = data.settings as AppSettings;
@@ -182,9 +187,15 @@ export const saveCloudSettings = async (userId: string, settings: AppSettings) =
         updated_at: new Date().toISOString()
       });
 
-    if (error) throw error;
-  } catch (e) {
+    if (error) {
+        // Handle missing table error gracefully
+        if (error.code === '42P01' || error.message.includes('does not exist')) {
+            throw new Error("Settings table missing. Please run the setup SQL in Supabase.");
+        }
+        throw error;
+    }
+  } catch (e: any) {
     console.error("Failed to save to cloud", e);
-    throw e;
+    throw new Error(e.message || "Cloud save failed");
   }
 };

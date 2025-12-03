@@ -67,7 +67,6 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
   
   // Meta Prompt Modal State
   const [showMetaModal, setShowMetaModal] = useState(false);
-  // Local state for the modal inputs
   const [localMetaName, setLocalMetaName] = useState('');
   const [localMetaContent, setLocalMetaContent] = useState('');
   const [localMetaId, setLocalMetaId] = useState<string | null>(null); 
@@ -148,9 +147,7 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
 
     setUploading(true);
     try {
-      // Pre-process image to fit ratio (Veo requirement mainly, but good for Sora too)
       const processedFile = await fitImageToAspectRatio(file, settings.aspectRatio);
-      
       const url = await uploadFileToKie(processedFile, activeKey);
       
       if (isStart) setStartImageUrl(url);
@@ -323,7 +320,7 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
       {/* Header Area (Unified Model + Tabs) */}
       <div className="flex-shrink-0 z-20 bg-[#0c0c0e] border-b border-white/5 pb-4">
           
-          {/* Title Header (RESTORED) */}
+          {/* Title Header */}
           <div className="px-4 pt-5 pb-2 flex items-center gap-2">
               <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
