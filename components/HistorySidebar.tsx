@@ -21,6 +21,7 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ history, tasks, onSelec
   
   // Zip State
   const [isZipping, setIsZipping] = useState(false);
+  const [zipProgress, setZipProgress] = useState('');
 
   const toggleSelection = (id: string) => {
     const newSelected = new Set(selectedIds);
@@ -37,31 +38,41 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ history, tasks, onSelec
   const handleBulkDownload = async () => {
     if (selectedIds.size === 0) return;
     setIsZipping(true);
+    setZipProgress('Init...');
 
     try {
-      const zip = new JSZip();
-      const idsToDownload = Array.from(selectedIds);
+      // Ensure JSZip is instantiated correctly regardless of import style
+      const ZipClass = (JSZip as any).default || JSZip;
+      const zip = new ZipClass();
       
-      // Create a folder inside zip
+      const idsToDownload = Array.from(selectedIds);
       const dateStr = new Date().toISOString().slice(0, 10);
       const folderName = `sonic-gen-batch-${dateStr}`;
       const folder = zip.folder(folderName);
 
       if (!folder) throw new Error("Failed to initialize zip folder");
 
-      // Process files concurrently
-      await Promise.all(idsToDownload.map(async (id) => {
+      let successCount = 0;
+      let failCount = 0;
+
+      // Process files sequentially to update progress properly
+      for (let i = 0; i < idsToDownload.length; i++) {
+        const id = idsToDownload[i];
+        setZipProgress(`${i + 1}/${idsToDownload.length}`);
+        
         const video = history.find(v => v.id === id);
-        if (!video) return;
+        if (!video) continue;
 
         let blobData = video.blob;
 
-        // If no local blob, try to fetch from URL (fallback for session history w/o IndexedDB)
+        // If no local blob, try to fetch from URL
         if (!blobData && video.url) {
            try {
              const response = await fetch(video.url);
              if (response.ok) {
                 blobData = await response.blob();
+             } else {
+                console.warn(`Fetch failed for ${id}: ${response.status}`);
              }
            } catch (e) {
              console.error(`Failed to fetch video ${id}`, e);
@@ -70,12 +81,23 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ history, tasks, onSelec
 
         if (blobData) {
            // Clean filename
-           const safePrompt = video.prompt.slice(0, 20).replace(/[^a-z0-9]/gi, '_');
+           const safePrompt = (video.prompt || "video").slice(0, 30).replace(/[^a-z0-9]/gi, '_');
            const filename = `${id.slice(0,6)}_${safePrompt}.mp4`;
            folder.file(filename, blobData);
+           successCount++;
+        } else {
+           failCount++;
         }
-      }));
+      }
 
+      if (successCount === 0) {
+        alert("Failed to retrieve any video data. Links might be expired.");
+        setIsZipping(false);
+        setZipProgress('');
+        return;
+      }
+
+      setZipProgress('Compiling...');
       // Generate ZIP
       const content = await zip.generateAsync({ type: "blob" });
       const zipUrl = URL.createObjectURL(content);
@@ -91,11 +113,12 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ history, tasks, onSelec
       // Cleanup
       setTimeout(() => URL.revokeObjectURL(zipUrl), 2000);
 
-    } catch (e) {
+    } catch (e: any) {
       console.error("Zip generation failed", e);
-      alert("Failed to create ZIP file. Some files might be missing or inaccessible.");
+      alert(`ZIP Error: ${e.message}`);
     } finally {
       setIsZipping(false);
+      setZipProgress('');
     }
   };
 
@@ -173,7 +196,7 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ history, tasks, onSelec
                  {isZipping ? (
                    <>
                       <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                      <span>Zipping...</span>
+                      <span>{zipProgress || 'Zipping...'}</span>
                    </>
                  ) : (
                    <>
