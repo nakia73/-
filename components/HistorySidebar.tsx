@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { GeneratedVideo, VideoTask } from '../types';
+import JSZip from 'jszip';
 
 interface HistorySidebarProps {
   history: GeneratedVideo[];
@@ -17,6 +18,9 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ history, tasks, onSelec
   // View State
   const [isSplitView, setIsSplitView] = useState(false);
   const [activeTab, setActiveTab] = useState<'queue' | 'history'>('history');
+  
+  // Zip State
+  const [isZipping, setIsZipping] = useState(false);
 
   const toggleSelection = (id: string) => {
     const newSelected = new Set(selectedIds);
@@ -32,21 +36,67 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ history, tasks, onSelec
 
   const handleBulkDownload = async () => {
     if (selectedIds.size === 0) return;
-    const idsToDownload = Array.from(selectedIds);
+    setIsZipping(true);
 
-    idsToDownload.forEach((id, index) => {
-      const video = history.find(v => v.id === id);
-      if (video && video.isLocal) {
-        setTimeout(() => {
-          const a = document.createElement('a');
-          a.href = video.url;
-          a.download = `kie-studio-${video.id}.mp4`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-        }, index * 800);
-      }
-    });
+    try {
+      const zip = new JSZip();
+      const idsToDownload = Array.from(selectedIds);
+      
+      // Create a folder inside zip
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const folderName = `sonic-gen-batch-${dateStr}`;
+      const folder = zip.folder(folderName);
+
+      if (!folder) throw new Error("Failed to initialize zip folder");
+
+      // Process files concurrently
+      await Promise.all(idsToDownload.map(async (id) => {
+        const video = history.find(v => v.id === id);
+        if (!video) return;
+
+        let blobData = video.blob;
+
+        // If no local blob, try to fetch from URL (fallback for session history w/o IndexedDB)
+        if (!blobData && video.url) {
+           try {
+             const response = await fetch(video.url);
+             if (response.ok) {
+                blobData = await response.blob();
+             }
+           } catch (e) {
+             console.error(`Failed to fetch video ${id}`, e);
+           }
+        }
+
+        if (blobData) {
+           // Clean filename
+           const safePrompt = video.prompt.slice(0, 20).replace(/[^a-z0-9]/gi, '_');
+           const filename = `${id.slice(0,6)}_${safePrompt}.mp4`;
+           folder.file(filename, blobData);
+        }
+      }));
+
+      // Generate ZIP
+      const content = await zip.generateAsync({ type: "blob" });
+      const zipUrl = URL.createObjectURL(content);
+
+      // Trigger Download
+      const a = document.createElement('a');
+      a.href = zipUrl;
+      a.download = `${folderName}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      // Cleanup
+      setTimeout(() => URL.revokeObjectURL(zipUrl), 2000);
+
+    } catch (e) {
+      console.error("Zip generation failed", e);
+      alert("Failed to create ZIP file. Some files might be missing or inaccessible.");
+    } finally {
+      setIsZipping(false);
+    }
   };
 
   // --- Render Components ---
@@ -112,15 +162,25 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ history, tasks, onSelec
           </h3>
           
           <div className="flex items-center gap-3">
-            {/* Bulk Download Button - Moved to Header */}
+            {/* Bulk Download Button - ZIP */}
             {selectedIds.size > 0 && (
                <button 
                  onClick={handleBulkDownload}
-                 className="flex items-center gap-1.5 px-2 py-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded text-[9px] font-bold transition-colors animate-fade-in"
+                 disabled={isZipping}
+                 className={`flex items-center gap-1.5 px-2 py-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded text-[9px] font-bold transition-colors animate-fade-in ${isZipping ? 'opacity-50 cursor-not-allowed' : ''}`}
                  title={t.hist_download_selected}
                >
-                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                 <span>{selectedIds.size}</span>
+                 {isZipping ? (
+                   <>
+                      <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                      <span>Zipping...</span>
+                   </>
+                 ) : (
+                   <>
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                      <span>ZIP ({selectedIds.size})</span>
+                   </>
+                 )}
                </button>
             )}
 
@@ -161,14 +221,14 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ history, tasks, onSelec
                   type="checkbox" 
                   checked={isSelected}
                   onChange={() => toggleSelection(video.id)}
-                  disabled={!hasFile}
+                  // Allow selecting remote files too for zipping (we will fetch them)
                   className="w-3.5 h-3.5 rounded border-white/20 bg-black checked:bg-primary checked:border-primary text-primary focus:ring-0 cursor-pointer disabled:opacity-20 transition-all appearance-none border checked:after:content-['✓'] checked:after:text-black checked:after:text-[10px] checked:after:flex checked:after:justify-center checked:after:items-center"
                 />
               </div>
 
-              <div onClick={() => hasFile && onSelectHistory(video)} className={`flex-1 flex gap-3 p-3 ${hasFile ? 'cursor-pointer' : 'cursor-default opacity-60'}`}>
+              <div onClick={() => (hasFile || video.url) && onSelectHistory(video)} className={`flex-1 flex gap-3 p-3 cursor-pointer`}>
                 <div className="w-20 h-14 bg-black rounded-md flex-shrink-0 overflow-hidden border border-white/10 relative group-hover:border-white/20 transition-colors shadow-sm">
-                    {hasFile ? (
+                    {video.url ? (
                         <>
                           <video src={video.url} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
                           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/40 transition-opacity">
@@ -183,7 +243,7 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ history, tasks, onSelec
                 </div>
                 <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                     <p className={`text-xs font-medium line-clamp-2 leading-relaxed ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-200'}`}>{video.prompt}</p>
-                    {!hasFile ? (
+                    {!hasFile && !video.url ? (
                         <div className="text-[9px] text-red-400/80 flex items-center gap-1 font-mono mt-1">
                             <span className="w-1 h-1 rounded-full bg-red-500"></span>
                             {t.hist_missing_file}
