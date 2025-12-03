@@ -1,21 +1,36 @@
 
-const KIE_UPLOAD_URL = 'https://kieai.redpandaai.co/api/file-stream-upload';
+const KIE_UPLOAD_URL = 'https://kieai.redpandaai.co/api/file-base64-upload';
+
+// Helper to convert File to Base64 Data URL
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+  });
+};
 
 export const uploadFileToKie = async (file: File, apiKey: string): Promise<string> => {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('uploadPath', 'veo-studio-uploads');
-  // Optional: Add fileName
-  formData.append('fileName', `${Date.now()}-${file.name}`);
-
   try {
+    // 1. Convert file to Base64
+    const base64Data = await fileToBase64(file);
+
+    // 2. Prepare JSON Payload
+    const payload = {
+      base64Data: base64Data,
+      uploadPath: 'veo-studio-uploads',
+      fileName: `${Date.now()}-${file.name}`
+    };
+
+    // 3. Send Request
     const response = await fetch(KIE_UPLOAD_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`
-        // Note: Do NOT set Content-Type header when using FormData, browser does it automatically with boundary
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
       },
-      body: formData,
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -25,11 +40,10 @@ export const uploadFileToKie = async (file: File, apiKey: string): Promise<strin
 
     const result = await response.json();
 
-    // Fix: API might return downloadUrl OR fileUrl. Check both.
-    const finalUrl = result.data?.downloadUrl || result.data?.fileUrl;
+    // 4. Extract URL
+    const finalUrl = result.data?.downloadUrl;
 
     if (!result.success || !finalUrl) {
-      // Sometimes success is false but msg has details
       throw new Error(result.msg || 'Failed to upload file to Kie.ai');
     }
 

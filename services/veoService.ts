@@ -19,11 +19,32 @@ interface KieResponse {
   };
 }
 
+// Helper to calculate cost before request
+export const getEstimatedCost = (model: string, duration?: string): number => {
+  // Sora 2 Pro: 250 credits (10s) / 375 credits (15s)
+  if (model.includes('sora-2-pro')) {
+      return (duration === '15') ? 375 : 250; 
+  }
+  // Sora 2: 30 credits (10s) / 45 credits (15s)
+  if (model.includes('sora-2')) {
+      return (duration === '15') ? 45 : 30;
+  }
+  // Veo HQ: 250 credits
+  if (model.includes('generate-preview') && !model.includes('fast')) {
+      return 250;
+  }
+  // Veo Fast: 60 credits
+  if (model.includes('fast')) {
+      return 60;
+  }
+  
+  // Default fallback (safe high estimate)
+  return 250;
+};
+
 // Function to fetch credits
 export const fetchCredits = async (apiKey: string): Promise<number> => {
   try {
-    // Note: Credit endpoint might vary. Keeping chat/credit as generic fallback 
-    // or assuming it shares the same wallet.
     const response = await fetch(`${BASE_URL}/chat/credit`, {
       method: 'GET',
       headers: { 'Authorization': `Bearer ${apiKey}` }
@@ -71,24 +92,25 @@ export const generateVeoVideo = async (
   const endpoint = `${JOB_URL}/createTask`;
   const isSora = settings.model.startsWith('sora');
   
-  // 1. Determine Model Name
+  // 1. Determine Model Name based on Input Type
+  // Specification: "sora-2-image-to-video" vs "sora-2-text-to-video"
   let modelName = settings.model;
   
-  // Specific logic for Sora naming conventions if needed
   if (isSora) {
      const hasImage = !!startImageUrl;
-     // If model is just 'sora-2' or 'sora-2-pro', append type
-     // If it already has it, leave it.
-     if (!modelName.includes('text-to-video') && !modelName.includes('image-to-video')) {
-         if (hasImage) {
-             modelName = `${modelName}-image-to-video`;
-         } else {
-             modelName = `${modelName}-text-to-video`;
-         }
+     
+     // Normalize base name (remove existing suffixes if any)
+     let baseModel = modelName.replace('-text-to-video', '').replace('-image-to-video', '');
+     
+     // Append correct suffix
+     if (hasImage) {
+         modelName = `${baseModel}-image-to-video`;
+     } else {
+         modelName = `${baseModel}-text-to-video`;
      }
   }
 
-  // 2. Construct Input Object (Unified for createTask)
+  // 2. Construct Input Object
   const input: any = {
       prompt: prompt,
       aspect_ratio: settings.aspectRatio === '16:9' ? 'landscape' : 'portrait',
@@ -98,34 +120,30 @@ export const generateVeoVideo = async (
   if (isSora) {
       input.n_frames = settings.duration || "10";
       input.remove_watermark = settings.removeWatermark ?? true;
+      
+      // Note: 'size' param might be needed for Pro, but not explicitly in the snippet provided. 
+      // Keeping it if previously supported, otherwise can be removed if strictly following snippet.
       if (settings.model.includes('pro')) {
           input.size = settings.size || 'standard';
       }
-      // Sora Image Input
+
+      // Sora Image Input (Required Array format)
       if (startImageUrl) {
-         // Some versions use image_urls (array), some image_url (string). 
-         // Based on doc with resultJson having lists, array is safer or try both if undocumented.
-         // We will use image_urls as array based on typical multi-input patterns.
          input.image_urls = [startImageUrl];
       }
   } else {
-      // Veo Specifics (if any differ from standard)
-      // Veo might use 'image_url' or 'image_urls'. 
-      // We'll pass image_urls array to be consistent with modern Kie APIs.
+      // Veo Specifics
       if (startImageUrl) input.image_urls = [startImageUrl];
       if (endImageUrl) {
           if (!input.image_urls) input.image_urls = [];
           input.image_urls.push(endImageUrl);
       }
-      
-      // Veo sometimes requires explicit generation type in input?
-      // If we use the unified createTask, 'model' usually dictates logic.
   }
 
   const payload = {
       model: modelName,
       input: input,
-      callBackUrl: "" 
+      callBackUrl: "" // Optional but empty string is safer than undefined if API expects field
   };
 
   try {
@@ -152,6 +170,7 @@ export const generateVeoVideo = async (
 
     const result: KieResponse = await response.json();
     
+    // Check logical codes
     if (result.code === 402) throw new Error("Insufficient Credits (402).");
     if (result.code !== 200 || !result.data?.taskId) {
       throw new Error(`Task Rejected: ${result.msg}`);
@@ -162,14 +181,14 @@ export const generateVeoVideo = async (
 
     let videoUrl: string | undefined;
     let attempts = 0;
-    const maxAttempts = 240; // 20 minutes
+    const maxAttempts = 240; // 20 minutes timeout
 
     while (!videoUrl && attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 5000)); 
       attempts++;
 
       try {
-        // Unified Polling Endpoint
+        // GET /api/v1/jobs/recordInfo?taskId=...
         const pollUrl = `${JOB_URL}/recordInfo?taskId=${taskId}`;
         
         const statusResponse = await fetch(pollUrl, {
@@ -180,24 +199,27 @@ export const generateVeoVideo = async (
             const statusJson = await statusResponse.json();
             const data = statusJson.data || {};
             
-            // Normalize status string
+            // Normalize status string (API returns 'state': 'success' | 'fail' | 'generating' | 'queuing')
             const status = (data.state || data.status || '').toUpperCase();
             console.log(`[VeoService] Poll ${taskId}: ${status}`);
 
             if (status === 'SUCCESS' || status === 'SUCCEEDED' || status === 'COMPLETED') {
-                // Success! Extract URL.
+                // Success! Extract URL from resultJson
                 if (data.resultJson) {
                     try {
                         const resObj = JSON.parse(data.resultJson);
-                        // Check common fields
-                        videoUrl = resObj.resultUrls?.[0] || resObj.videoUrl || resObj.url;
+                        // Extract resultUrls[0]
+                        if (resObj.resultUrls && Array.isArray(resObj.resultUrls) && resObj.resultUrls.length > 0) {
+                             videoUrl = resObj.resultUrls[0];
+                        } else {
+                             videoUrl = resObj.videoUrl || resObj.url;
+                        }
                     } catch (e) {
                         console.error("Failed to parse resultJson", e);
-                        // Fallback if resultJson is just the url string? Unlikely.
                     }
                 }
                 
-                // Fallback to direct fields
+                // Fallback to direct fields if resultJson parsing failed or was empty
                 if (!videoUrl) videoUrl = data.videoUrl || data.url;
 
                 if (!videoUrl) {

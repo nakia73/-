@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { ApiKeyData, VideoTask, VideoSettings, GeneratedVideo, Translation } from '../types';
-import { generateVeoVideo, fetchCredits } from '../services/veoService';
+import { generateVeoVideo, fetchCredits, getEstimatedCost } from '../services/veoService';
 import { useToast } from '../components/ToastContext';
 import { saveHistoryItem, fetchUserHistory } from '../services/historyService';
 
@@ -121,27 +121,46 @@ export const useVideoQueue = (t?: Translation) => {
   useEffect(() => {
     const processQueue = async () => {
       try {
-        // Optimization: Try to fill all slots in one tick
         const pendingTasks = tasks.filter(t => t.status === 'pending');
         if (pendingTasks.length === 0) return;
 
-        const availableKeys = apiKeys.filter(k => 
-          k.key.length > 0 && 
-          k.status !== 'error' && 
-          k.activeRequests < 2
-        );
+        // Create shallow copies to track local accounting in this tick
+        // This is important because the 'apiKeys' state won't update until next render,
+        // but we might process multiple tasks in one tick (loop).
+        const schedulableKeys = apiKeys
+            .filter(k => k.key.length > 0 && k.status !== 'error' && k.activeRequests < 2)
+            .map(k => ({ ...k })); 
 
-        if (availableKeys.length === 0) return;
-        availableKeys.sort((a, b) => a.activeRequests - b.activeRequests);
+        if (schedulableKeys.length === 0) return;
+        
+        // Sort keys by load (activeRequests)
+        schedulableKeys.sort((a, b) => a.activeRequests - b.activeRequests);
 
         let taskIndex = 0;
-        for (const keyData of availableKeys) {
-           // Key can take up to (2 - active) tasks
+        
+        // Iterate keys and try to fill slots
+        for (const keyData of schedulableKeys) {
            const slots = 2 - keyData.activeRequests;
            for (let i=0; i<slots; i++) {
                if (taskIndex >= pendingTasks.length) break;
+               
                const task = pendingTasks[taskIndex];
+               const estimatedCost = getEstimatedCost(task.settings.model, task.settings.duration);
+               const currentBalance = keyData.remainingCredits || 0;
+               
+               // Pre-flight Check: Does this key locally have enough credits?
+               if (currentBalance < estimatedCost) {
+                   // Key cannot afford this task. Stop assigning to this key.
+                   break; 
+               }
+               
+               // Start processing with the original Key ID (state update happens in startProcessing)
                startProcessing(task, keyData);
+               
+               // Deduct from local copy for the loop to prevent double booking in the same tick
+               keyData.remainingCredits = currentBalance - estimatedCost;
+               keyData.activeRequests++;
+               
                taskIndex++;
            }
         }
@@ -156,11 +175,24 @@ export const useVideoQueue = (t?: Translation) => {
 
   const startProcessing = async (task: VideoTask, keyData: ApiKeyData) => {
     updateTask(task.id, { status: 'processing', assignedKey: keyData.id, progress: 'Starting...' });
-    updateKey(keyData.id, { 
-      activeRequests: keyData.activeRequests + 1, 
-      status: 'busy', 
-      errorMessage: undefined 
-    });
+    
+    const estimatedCost = getEstimatedCost(task.settings.model, task.settings.duration);
+
+    // Optimistic Deduction State Update
+    setApiKeys(prev => prev.map(k => {
+      if (k.id === keyData.id) {
+        const currentCredits = k.remainingCredits || 0;
+        return { 
+          ...k, 
+          activeRequests: k.activeRequests + 1, 
+          status: 'busy', 
+          errorMessage: undefined,
+          // Deduct immediately to prevent UI lag or race conditions in next tick
+          remainingCredits: Math.max(0, currentCredits - estimatedCost)
+        };
+      }
+      return k;
+    }));
 
     try {
       const { blob, remoteUrl } = await generateVeoVideo(
@@ -203,6 +235,7 @@ export const useVideoQueue = (t?: Translation) => {
         return k;
       }));
       
+      // Sync actual balance from server after completion
       fetchCredits(keyData.key).then(credits => {
           updateKey(keyData.id, { remainingCredits: credits });
       });
@@ -232,6 +265,8 @@ export const useVideoQueue = (t?: Translation) => {
 
       setApiKeys(prev => prev.map(k => {
         if (k.id === keyData.id) {
+          // Note: If failed, we could technically refund the estimated cost locally,
+          // but it's safer to just set status and wait for manual refresh or next auto-sync.
           return {
             ...k,
             activeRequests: Math.max(0, k.activeRequests - 1),
