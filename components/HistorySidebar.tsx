@@ -110,11 +110,26 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ history, tasks, onSelec
              <svg className="w-3.5 h-3.5 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
              {t.hist_history}
           </h3>
-          {history.length > 0 && (
-            <button onClick={toggleSelectAll} className="text-[10px] font-medium text-gray-500 hover:text-white transition-colors">
-              {selectedIds.size === history.length ? t.hist_deselect_all : t.hist_select_all}
-            </button>
-          )}
+          
+          <div className="flex items-center gap-3">
+            {/* Bulk Download Button - Moved to Header */}
+            {selectedIds.size > 0 && (
+               <button 
+                 onClick={handleBulkDownload}
+                 className="flex items-center gap-1.5 px-2 py-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded text-[9px] font-bold transition-colors animate-fade-in"
+                 title={t.hist_download_selected}
+               >
+                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                 <span>{selectedIds.size}</span>
+               </button>
+            )}
+
+            {history.length > 0 && (
+              <button onClick={toggleSelectAll} className="text-[10px] font-medium text-gray-500 hover:text-white transition-colors">
+                {selectedIds.size === history.length ? t.hist_deselect_all : t.hist_select_all}
+              </button>
+            )}
+          </div>
       </div>
       
       <div className="overflow-y-auto p-2 space-y-1 flex-1 custom-scrollbar">
@@ -198,18 +213,6 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ history, tasks, onSelec
           );
         })}
       </div>
-
-      {selectedIds.size > 0 && (
-        <div className="p-3 border-t border-white/10 bg-[#18181b] absolute bottom-0 left-0 right-0 z-20 animate-slide-in shadow-2xl">
-           <button 
-             onClick={handleBulkDownload}
-             className="w-full py-2.5 bg-white text-black text-xs font-bold rounded-lg shadow-lg hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
-           >
-             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-             {t.hist_download_selected} ({selectedIds.size})
-           </button>
-        </div>
-      )}
     </div>
   );
 
