@@ -78,7 +78,7 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
   const [settings, setSettings] = useState<VideoSettings>({
     aspectRatio: '16:9',
     resolution: '720p',
-    model: 'veo-3.1-fast-generate-preview',
+    model: 'sora-2', // Default to Sora 2 for ALL modes
     duration: '10',
     size: 'standard',
     removeWatermark: true
@@ -188,9 +188,6 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
       }
       onAddToQueue(prompt, startImageUrl || null, endImageUrl || null, settings, promptConfig);
       setShowQualityWarning(false);
-      
-      // Reset after add (optional)
-      // setPrompt(''); 
   };
 
   const handleEnhancePrompt = async () => {
@@ -267,327 +264,332 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({
           <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-fade-in">
               <div className="bg-surface border border-white/10 rounded-xl p-6 max-w-lg w-full shadow-2xl">
                   <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-sm font-bold text-white">{t.adv_meta_label}</h3>
+                      <h3 className="text-sm font-bold text-white">{localMetaId ? t.modal_select_edit : t.modal_new_tmpl}</h3>
                       <button onClick={() => setShowMetaModal(false)} className="text-gray-400 hover:text-white">
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                       </button>
                   </div>
-
+                  
                   <div className="space-y-4">
-                      <div>
-                          <label className="text-xs text-gray-400 block mb-1">{t.dir_tmpl_name}</label>
-                          <input 
-                              type="text"
-                              value={localMetaName}
-                              onChange={(e) => setLocalMetaName(e.target.value)}
-                              className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-sm text-white focus:border-secondary outline-none"
-                          />
-                      </div>
-                      <div>
-                          <label className="text-xs text-gray-400 block mb-1">{t.dir_tmpl_prompt}</label>
-                          <textarea 
-                              value={localMetaContent}
-                              onChange={(e) => setLocalMetaContent(e.target.value)}
-                              className="w-full h-48 bg-black/40 border border-white/10 rounded px-3 py-2 text-xs text-gray-300 focus:border-secondary outline-none resize-none font-mono leading-relaxed"
-                              placeholder={t.adv_meta_placeholder}
-                          />
-                      </div>
+                    <div>
+                        <label className="text-xs text-gray-400 block mb-1">{t.dir_tmpl_name}</label>
+                        <input 
+                            type="text" 
+                            value={localMetaName}
+                            onChange={(e) => setLocalMetaName(e.target.value)}
+                            className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-sm text-white focus:border-secondary outline-none"
+                        />
+                    </div>
+                    
+                    <div>
+                        <label className="text-xs text-gray-400 block mb-1">{t.adv_meta_label}</label>
+                        <textarea
+                            value={localMetaContent}
+                            onChange={(e) => setLocalMetaContent(e.target.value)}
+                            placeholder={t.adv_meta_placeholder}
+                            className="w-full h-48 bg-black/40 border border-white/10 rounded px-3 py-2 text-xs text-gray-300 focus:border-secondary outline-none resize-none font-mono leading-relaxed"
+                        />
+                    </div>
 
-                      <div className="flex gap-3 pt-2 border-t border-white/5">
-                          {localMetaId && !promptTemplates.find(pt => pt.id === localMetaId)?.isDefault && (
-                              <button 
-                                  onClick={handleMetaDelete}
-                                  className="px-3 py-2 text-xs text-red-400 hover:text-red-300 border border-red-500/30 rounded hover:bg-red-500/10"
-                              >
-                                  {t.dir_tmpl_delete}
-                              </button>
-                          )}
-                          <div className="flex-1 flex gap-2 justify-end">
-                              {localMetaId && (
-                                  <button 
-                                      onClick={handleMetaSaveAsNew}
-                                      className="px-4 py-2 text-xs text-gray-300 hover:text-white border border-white/10 rounded hover:bg-white/5"
-                                  >
-                                      {t.modal_save_as_new}
-                                  </button>
-                              )}
-                              <button onClick={handleMetaSave} className="px-6 py-2 bg-secondary text-black text-xs font-bold rounded hover:bg-cyan-400 transition-colors">
-                                  {localMetaId ? t.modal_update : t.modal_create}
-                              </button>
-                          </div>
-                      </div>
+                    <div className="flex gap-3 pt-2 border-t border-white/5">
+                        {localMetaId && !promptTemplates.find(t => t.id === localMetaId)?.isDefault && (
+                            <button 
+                                onClick={handleMetaDelete}
+                                className="px-3 py-2 text-xs text-red-400 hover:text-red-300 border border-red-500/30 rounded hover:bg-red-500/10"
+                            >
+                                {t.common_delete}
+                            </button>
+                        )}
+
+                        <div className="flex-1 flex gap-2 justify-end">
+                            {localMetaId && (
+                                <button 
+                                    onClick={handleMetaSaveAsNew}
+                                    className="px-4 py-2 text-xs text-gray-300 hover:text-white border border-white/10 rounded hover:bg-white/5"
+                                >
+                                    {t.modal_save_as_new}
+                                </button>
+                            )}
+                            <button onClick={handleMetaSave} className="px-6 py-2 bg-secondary text-black text-xs font-bold rounded hover:bg-cyan-400 transition-colors">
+                                {localMetaId ? t.modal_update : t.modal_create}
+                            </button>
+                        </div>
+                    </div>
                   </div>
               </div>
           </div>
       )}
 
-      <div className="p-6 pb-0 flex-shrink-0">
-        <div className="flex justify-between items-center mb-6">
-           <h2 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-             <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-             </svg>
-             {t.gen_title}
-           </h2>
-           <span className="text-[10px] font-mono text-gray-500 bg-white/5 px-2 py-1 rounded border border-white/5">
-              Q: {queueLength}
-           </span>
-        </div>
+      {/* Header & Global Settings (Always Visible) */}
+      <div className="flex-shrink-0 z-20 bg-background pb-4 px-1 pt-1">
+          {/* Tab Navigation */}
+          <div className="flex p-1 bg-surfaceHighlight/50 rounded-xl mb-6 border border-white/5 relative z-20 shrink-0">
+            <button
+                onClick={() => {
+                    setMode('text-to-video');
+                    // Reset image if needed, but model stays as user selected (or default Sora 2)
+                    setStartImageUrl('');
+                }}
+                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mode === 'text-to-video' ? 'bg-surface text-white shadow-lg border border-white/10' : 'text-gray-500 hover:text-gray-300'}`}
+            >
+                {t.gen_tab_text}
+            </button>
+            <button
+                onClick={() => {
+                    setMode('image-to-video');
+                    setStartImageUrl(''); // Reset to ensure fresh upload state
+                }}
+                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mode === 'image-to-video' ? 'bg-surface text-white shadow-lg border border-white/10' : 'text-gray-500 hover:text-gray-300'}`}
+            >
+                {t.gen_tab_image}
+            </button>
+            <button
+                onClick={() => {
+                    setMode('director');
+                    // Default to Sora 2 if not already (though request says make it default always)
+                    // We can force Sora 2 here to be safe as per user request
+                    setSettings(s => ({ ...s, model: 'sora-2' }));
+                }}
+                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mode === 'director' ? 'bg-surface text-white shadow-lg border border-white/10' : 'text-gray-500 hover:text-gray-300'}`}
+            >
+                {t.gen_tab_director}
+            </button>
+          </div>
 
-        <div className="flex p-1 bg-black/40 rounded-xl mb-6 border border-white/10 relative">
-          <div 
-             className="absolute top-1 bottom-1 bg-surfaceHighlight rounded-lg transition-all duration-300 ease-out border border-white/5 shadow-sm"
-             style={{ 
-               left: mode === 'text-to-video' ? '4px' : mode === 'image-to-video' ? '33.33%' : '66.66%', 
-               width: 'calc(33.33% - 5px)'
-             }}
-          ></div>
-          <button 
-            onClick={() => {
-                setMode('text-to-video');
-                setSettings(s => ({ ...s, model: 'veo-3.1-fast-generate-preview' }));
-                setStartImageUrl(''); // Clear images
-                setEndImageUrl('');
-            }} 
-            className={`flex-1 relative z-10 py-2 text-xs font-bold transition-colors ${mode === 'text-to-video' ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
-          >
-            {t.gen_tab_text}
-          </button>
-          <button 
-            onClick={() => {
-                setMode('image-to-video');
-                setSettings(s => ({ ...s, model: 'veo-3.1-fast-generate-preview' }));
-                setStartImageUrl(''); // Clear images
-                setEndImageUrl('');
-            }} 
-            className={`flex-1 relative z-10 py-2 text-xs font-bold transition-colors ${mode === 'image-to-video' ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
-          >
-            {t.gen_tab_image}
-          </button>
-          <button 
-            onClick={() => {
-                setMode('director');
-                setSettings(s => ({ ...s, model: 'sora-2' }));
-                setStartImageUrl(''); // Clear images
-                setEndImageUrl('');
-            }} 
-            className={`flex-1 relative z-10 py-2 text-xs font-bold transition-colors ${mode === 'director' ? 'text-secondary' : 'text-gray-500 hover:text-gray-300'}`}
-          >
-            {t.gen_tab_director}
-          </button>
-        </div>
+          {/* Model Selection (GLOBAL) */}
+          <div className="bg-surface border border-white/10 rounded-xl p-4 mb-2">
+            <div className="flex justify-between items-center mb-3">
+                <span className={`text-xs font-bold uppercase tracking-wider ${modelInfo.color}`}>
+                {modelInfo.label}
+                </span>
+                <span className="text-[10px] text-gray-500 bg-white/5 px-2 py-1 rounded">
+                {modelInfo.cost}
+                </span>
+            </div>
+            
+            <select
+                value={settings.model}
+                onChange={(e) => setSettings({...settings, model: e.target.value})}
+                className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-sm text-white focus:border-secondary outline-none appearance-none transition-colors hover:border-white/20"
+            >
+                {/* Reordered: Sora 2 First */}
+                <option value="sora-2">{t.gen_model_sora}</option>
+                <option value="sora-2-pro">{t.gen_model_sora_pro}</option>
+                <option value="veo-3.1-fast-generate-preview">{t.gen_model_veo_fast}</option>
+                <option value="veo-3.1-generate-preview">{t.gen_model_veo_hq}</option>
+            </select>
+            <p className="text-[10px] text-gray-500 mt-2">{modelInfo.desc}</p>
+          </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-        
-        {/* DIRECTOR MODE PANEL */}
+      {/* Main Content Area (Scrollable) */}
+      <div className="flex-1 min-h-0 overflow-hidden relative">
         {mode === 'director' ? (
-           <DirectorPanel 
-              apiKeys={apiKeys}
-              geminiApiKey={geminiApiKey}
-              settings={settings}
-              setSettings={setSettings}
-              onExecuteBatch={(scenes) => {
-                  scenes.forEach(scene => {
-                       onAddToQueue(
-                           scene.prompt, 
-                           scene.imageUrl || null, 
-                           null, 
-                           {...settings}, // Pass global settings (model/ratio)
-                           directorPromptConfig
-                       );
-                  });
-              }}
-              promptConfig={directorPromptConfig}
-              setPromptConfig={setDirectorPromptConfig}
-              
-              activePromptTemplateName="" // Not used in Director mode
-              onOpenMetaModal={() => {}} // Not used here
-              
-              directorTemplates={directorTemplates}
-              activeTemplateId={activeTemplateId}
-              setActiveTemplateId={setActiveTemplateId}
-              addTemplate={addTemplate}
-              updateTemplate={updateTemplate}
-              deleteTemplate={deleteTemplate}
-              
-              t={t}
-           />
+            <DirectorPanel 
+                apiKeys={apiKeys}
+                geminiApiKey={geminiApiKey}
+                settings={settings}
+                setSettings={setSettings}
+                onExecuteBatch={(scenes) => {
+                    // Batch execution logic
+                    scenes.forEach((scene, idx) => {
+                        setTimeout(() => {
+                            onAddToQueue(scene.prompt, scene.imageUrl || null, null, settings, directorPromptConfig);
+                        }, idx * 200);
+                    });
+                    addToast(`Queued ${scenes.length} tasks`, "success");
+                }}
+                
+                promptConfig={directorPromptConfig}
+                setPromptConfig={setDirectorPromptConfig}
+                
+                activePromptTemplateName={promptTemplates.find(p => p.id === activePromptTemplateId)?.name || 'Custom'}
+                onOpenMetaModal={() => setShowMetaModal(true)}
+                
+                directorTemplates={directorTemplates}
+                activeTemplateId={activeTemplateId}
+                setActiveTemplateId={setActiveTemplateId}
+                addTemplate={addTemplate}
+                updateTemplate={updateTemplate}
+                deleteTemplate={deleteTemplate}
+
+                t={t}
+            />
         ) : (
-          /* STANDARD GENERATOR (Text & Image) */
-          <>
-            {/* Model Selection */}
-            <div className="space-y-3">
-               <div className="flex items-center justify-between">
-                 <label className="text-xs text-gray-400 font-medium">Model</label>
-                 <span className={`text-[10px] ${modelInfo.color} font-bold`}>{modelInfo.cost}</span>
-               </div>
-               <div className="grid grid-cols-1 gap-2">
-                 <select 
-                    value={settings.model}
-                    onChange={(e) => setSettings({...settings, model: e.target.value})}
-                    className="w-full bg-surface border border-white/10 rounded-lg p-3 text-sm text-white focus:border-primary outline-none appearance-none"
-                  >
-                    <option value="veo-3.1-fast-generate-preview">{t.gen_model_veo_fast}</option>
-                    <option value="veo-3.1-generate-preview">{t.gen_model_veo_hq}</option>
-                    <option value="sora-2">{t.gen_model_sora}</option>
-                    <option value="sora-2-pro">{t.gen_model_sora_pro}</option>
-                 </select>
-                 <p className="text-[10px] text-gray-500 px-1">{modelInfo.desc}</p>
-               </div>
-            </div>
+            <div className="h-full overflow-y-auto pr-2 pb-4 space-y-6">
+                
+                {/* 1. Advanced Settings (Prompt Generation & Config) */}
+                <AdvancedSettingsPanel 
+                    t={t}
+                    showAdvancedSettings={showAdvancedSettings}
+                    setShowAdvancedSettings={setShowAdvancedSettings}
+                    
+                    draftIdea={draftIdea}
+                    setDraftIdea={setDraftIdea}
+                    enhancerModel={enhancerModel}
+                    setEnhancerModel={setEnhancerModel}
+                    isEnhancing={isEnhancing}
+                    handleEnhancePrompt={handleEnhancePrompt}
+                    
+                    promptConfig={promptConfig}
+                    setPromptConfig={setPromptConfig}
+                    
+                    activePromptTemplateName={promptTemplates.find(p => p.id === activePromptTemplateId)?.name || 'Custom'}
+                    onOpenMetaModal={() => setShowMetaModal(true)}
+                    
+                    mode={mode}
+                />
 
-            {/* Prompt Section with Advanced Panel */}
-            <div className="space-y-2">
-               <label className="text-xs text-gray-400 font-medium flex justify-between">
-                 {t.gen_prompt_label}
-                 <span className={prompt.length > 500 ? 'text-red-400' : 'text-gray-600'}>{prompt.length} chars</span>
-               </label>
+                {/* 2. Prompt Input */}
+                <div>
+                    <label className="text-xs text-gray-400 font-medium block mb-2 uppercase tracking-wide">{t.gen_prompt_label}</label>
+                    <textarea 
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        placeholder={t.gen_prompt_placeholder}
+                        className="w-full h-32 bg-surface border border-white/10 rounded-xl p-4 text-white placeholder-gray-600 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all resize-none shadow-inner"
+                    />
+                </div>
 
-               <AdvancedSettingsPanel 
-                  t={t}
-                  showAdvancedSettings={showAdvancedSettings}
-                  setShowAdvancedSettings={setShowAdvancedSettings}
-                  
-                  draftIdea={draftIdea}
-                  setDraftIdea={setDraftIdea}
-                  enhancerModel={enhancerModel}
-                  setEnhancerModel={setEnhancerModel}
-                  isEnhancing={isEnhancing}
-                  handleEnhancePrompt={handleEnhancePrompt}
-                  
-                  promptConfig={promptConfig}
-                  setPromptConfig={setPromptConfig}
-                  
-                  activePromptTemplateName={promptTemplates.find(pt => pt.id === activePromptTemplateId)?.name || 'Default'}
-                  onOpenMetaModal={() => setShowMetaModal(true)}
-                  
-                  mode={mode as 'text-to-video' | 'image-to-video'}
-               />
-
-               <textarea 
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder={t.gen_prompt_placeholder}
-                  className="w-full h-32 bg-surface border border-white/10 rounded-xl p-4 text-sm text-white placeholder-gray-600 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all resize-none"
-               />
-            </div>
-
-            {/* Image Uploads */}
-            {(mode === 'image-to-video' || isSora) && (
-              <div className="space-y-3">
-                 <label className="text-xs text-gray-400 font-medium">{t.gen_start_frame_url}</label>
-                 <div 
-                   onClick={() => startFileRef.current?.click()}
-                   className={`border border-dashed border-white/20 rounded-lg p-4 text-center cursor-pointer hover:bg-white/5 transition-colors relative flex flex-col items-center justify-center gap-2 min-h-[100px] ${startImageUrl ? 'border-primary/50 bg-primary/5' : ''}`}
-                 >
-                    {startImageUrl ? (
-                        <div className="relative w-full group">
-                            <img src={startImageUrl} alt="Start" className="max-h-32 mx-auto rounded shadow-lg" />
-                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/60 transition-opacity rounded">
-                                <span className="text-xs font-bold text-white">Change Image</span>
+                {/* 3. Image Uploads */}
+                <div className="grid grid-cols-2 gap-4">
+                    {/* Start Image (Common for all) */}
+                    <div>
+                        <label className="text-xs text-gray-400 font-medium block mb-2 truncate">{t.gen_start_frame_url}</label>
+                        <div 
+                        onClick={() => startFileRef.current?.click()}
+                        className={`border border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-white/5 transition-all relative group h-32 flex flex-col items-center justify-center ${startImageUrl ? 'border-primary/50 bg-primary/5' : 'border-white/20'}`}
+                        >
+                        {startImageUrl ? (
+                            <div className="relative w-full h-full flex items-center justify-center">
+                                <img src={startImageUrl} alt="Start" className="max-h-full max-w-full rounded object-contain shadow-lg" />
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded">
+                                    <span className="text-xs font-bold text-white">{t.common_change}</span>
+                                </div>
                             </div>
+                        ) : (
+                            <>
+                                {uploading ? (
+                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                    <svg className="w-8 h-8 text-gray-600 group-hover:text-gray-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                )}
+                                <span className="text-[10px] text-gray-500 mt-2">{t.gen_upload_placeholder}</span>
+                            </>
+                        )}
+                        </div>
+                        <input 
+                            ref={startFileRef}
+                            type="file" 
+                            className="hidden" 
+                            accept="image/*"
+                            onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], true)}
+                        />
+                    </div>
+
+                    {/* End Image (Veo Only) */}
+                    <div>
+                        <label className={`text-xs font-medium block mb-2 truncate ${isSora ? 'text-gray-700 line-through' : 'text-gray-400'}`}>{t.gen_end_frame_url}</label>
+                        <div 
+                        onClick={() => !isSora && endFileRef.current?.click()}
+                        className={`border border-dashed rounded-lg p-4 text-center transition-all relative group h-32 flex flex-col items-center justify-center ${isSora ? 'border-white/5 bg-black/20 cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-white/5 border-white/20'}`}
+                        >
+                            {endImageUrl ? (
+                                <div className="relative w-full h-full flex items-center justify-center">
+                                    <img src={endImageUrl} alt="End" className="max-h-full max-w-full rounded object-contain shadow-lg" />
+                                    {!isSora && (
+                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded">
+                                            <span className="text-xs font-bold text-white">{t.common_change}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <>
+                                    <svg className="w-8 h-8 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                    <span className="text-[10px] text-gray-600 mt-2">{isSora ? 'Not supported in Sora' : t.gen_upload_placeholder}</span>
+                                </>
+                            )}
+                        </div>
+                        <input 
+                            ref={endFileRef}
+                            type="file" 
+                            className="hidden" 
+                            accept="image/*"
+                            onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], false)}
+                        />
+                    </div>
+                </div>
+
+                {/* 4. Basic Settings (Aspect/Res) */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="text-xs text-gray-400 font-medium block mb-2">{t.gen_aspect_ratio}</label>
+                        <select 
+                            value={settings.aspectRatio}
+                            onChange={(e) => setSettings({...settings, aspectRatio: e.target.value as any})}
+                            className="w-full bg-surface border border-white/10 rounded-lg p-3 text-sm text-white focus:border-secondary outline-none appearance-none"
+                        >
+                            <option value="16:9">{t.gen_opt_landscape}</option>
+                            <option value="9:16">{t.gen_opt_portrait}</option>
+                        </select>
+                    </div>
+
+                    {isSora ? (
+                        <div>
+                            <label className="text-xs text-gray-400 font-medium block mb-2">{t.gen_duration}</label>
+                            <select 
+                                value={settings.duration}
+                                onChange={(e) => setSettings({...settings, duration: e.target.value as any})}
+                                className="w-full bg-surface border border-white/10 rounded-lg p-3 text-sm text-white focus:border-secondary outline-none appearance-none"
+                            >
+                                <option value="10">{t.gen_opt_10s}</option>
+                                <option value="15">{t.gen_opt_15s}</option>
+                            </select>
                         </div>
                     ) : (
-                        <>
-                           {uploading ? (
-                             <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                           ) : (
-                             <svg className="w-8 h-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                           )}
-                           <span className="text-xs text-gray-600">{uploading ? t.gen_processing_img : t.gen_upload_placeholder}</span>
-                        </>
-                    )}
-                 </div>
-                 <input 
-                   ref={startFileRef}
-                   type="file" 
-                   className="hidden" 
-                   accept="image/*"
-                   onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], true)}
-                 />
-              </div>
-            )}
-
-            {mode === 'text-to-video' && !isSora && (
-               <div className="space-y-3">
-                  <label className="text-xs text-gray-400 font-medium">{t.gen_end_frame_url}</label>
-                  <div 
-                    onClick={() => endFileRef.current?.click()}
-                    className="border border-dashed border-white/20 rounded-lg p-3 text-center cursor-pointer hover:bg-white/5 transition-colors min-h-[60px] flex items-center justify-center"
-                  >
-                     {endImageUrl ? (
-                        <div className="flex items-center gap-2">
-                             <img src={endImageUrl} alt="End" className="w-8 h-8 rounded object-cover" />
-                             <span className="text-xs text-green-400">End Frame Set</span>
+                        <div>
+                            <label className="text-xs text-gray-400 font-medium block mb-2">{t.gen_resolution}</label>
+                            <select 
+                                value={settings.resolution}
+                                onChange={(e) => setSettings({...settings, resolution: e.target.value as any})}
+                                className="w-full bg-surface border border-white/10 rounded-lg p-3 text-sm text-white focus:border-secondary outline-none appearance-none"
+                            >
+                                <option value="720p">{t.gen_opt_720p}</option>
+                                <option value="1080p">{t.gen_opt_1080p}</option>
+                            </select>
                         </div>
-                     ) : (
-                        <span className="text-xs text-gray-600">{t.gen_upload_img} (Optional)</span>
-                     )}
-                  </div>
-                  <input 
-                    ref={endFileRef}
-                    type="file" 
-                    className="hidden" 
-                    accept="image/*"
-                    onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], false)}
-                  />
-               </div>
-            )}
+                    )}
+                </div>
 
-            {/* Config Grid */}
-            <div className="grid grid-cols-2 gap-4">
-               <div>
-                  <label className="text-xs text-gray-400 font-medium block mb-2">{t.gen_aspect_ratio}</label>
-                  <select 
-                    value={settings.aspectRatio}
-                    onChange={(e) => setSettings({...settings, aspectRatio: e.target.value as any})}
-                    className="w-full bg-surface border border-white/10 rounded-lg p-2 text-sm text-white focus:border-primary outline-none appearance-none"
-                  >
-                    <option value="16:9">{t.gen_opt_landscape}</option>
-                    <option value="9:16">{t.gen_opt_portrait}</option>
-                  </select>
-               </div>
-
-               {isSora ? (
-                   <div>
-                       <label className="text-xs text-gray-400 font-medium block mb-2">{t.gen_duration}</label>
-                       <select 
-                           value={settings.duration}
-                           onChange={(e) => setSettings({...settings, duration: e.target.value as any})}
-                           className="w-full bg-surface border border-white/10 rounded-lg p-2 text-sm text-white focus:border-primary outline-none appearance-none"
-                       >
-                           <option value="10">{t.gen_opt_10s}</option>
-                           <option value="15">{t.gen_opt_15s}</option>
-                       </select>
-                   </div>
-               ) : (
-                   <div>
-                       <label className="text-xs text-gray-400 font-medium block mb-2">{t.gen_resolution}</label>
-                       <select 
-                           value={settings.resolution}
-                           onChange={(e) => setSettings({...settings, resolution: e.target.value as any})}
-                           className="w-full bg-surface border border-white/10 rounded-lg p-2 text-sm text-white focus:border-primary outline-none appearance-none"
-                       >
-                           <option value="720p">{t.gen_opt_720p}</option>
-                           <option value="1080p">{t.gen_opt_1080p}</option>
-                       </select>
-                   </div>
-               )}
+                {/* 5. Watermark (Sora only) */}
+                {isSora && (
+                    <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/5">
+                        <span className="text-xs text-gray-300">{t.gen_watermark}</span>
+                        <button 
+                            onClick={() => setSettings(s => ({ ...s, removeWatermark: !s.removeWatermark }))}
+                            className={`w-10 h-5 rounded-full p-0.5 transition-colors ${settings.removeWatermark ? 'bg-secondary' : 'bg-gray-700'}`}
+                        >
+                            <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${settings.removeWatermark ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                        </button>
+                    </div>
+                )}
+                
+                {/* 6. Generate Button */}
+                <div className="pt-2">
+                    <button
+                        onClick={handleQueueClick}
+                        className="w-full py-4 bg-primary hover:bg-primaryHover text-black font-bold rounded-xl transition-all hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-primary/25 flex items-center justify-center gap-2 group"
+                    >
+                        <div className="relative">
+                            <svg className="w-6 h-6 group-hover:animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </div>
+                        <div className="flex flex-col items-start leading-tight">
+                            <span className="text-sm">{t.gen_queue_btn}</span>
+                            <span className="text-[9px] opacity-75 font-normal">{queueLength > 0 ? `${queueLength} tasks in queue` : 'Ready to start'}</span>
+                        </div>
+                    </button>
+                </div>
             </div>
-
-            <div className="mt-auto pt-4 border-t border-white/5">
-              <button
-                onClick={handleQueueClick}
-                disabled={!prompt.trim() && !startImageUrl}
-                className="w-full py-4 bg-primary hover:bg-primaryHover text-black font-bold rounded-xl transition-colors disabled:opacity-50 shadow-lg shadow-primary/20 flex items-center justify-center gap-2 group"
-              >
-                <div className="w-1 h-4 bg-black/20 rounded-full group-hover:scale-y-110 transition-transform"></div>
-                {t.gen_queue_btn}
-                <svg className="w-5 h-5 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-              </button>
-            </div>
-          </>
         )}
       </div>
     </div>
