@@ -113,16 +113,20 @@ export const generateVeoVideo = async (
   // 2. Construct Input Object
   const input: any = {
       prompt: prompt,
-      aspect_ratio: settings.aspectRatio === '16:9' ? 'landscape' : 'portrait',
   };
+
+  // Aspect Ratio Logic: Sora uses 'landscape'/'portrait', Veo uses '16:9'/'9:16'
+  if (isSora) {
+      input.aspect_ratio = settings.aspectRatio === '16:9' ? 'landscape' : 'portrait';
+  } else {
+      input.aspect_ratio = settings.aspectRatio;
+  }
 
   // Add specific params based on model type
   if (isSora) {
       input.n_frames = settings.duration || "10";
       input.remove_watermark = settings.removeWatermark ?? true;
       
-      // Note: 'size' param might be needed for Pro, but not explicitly in the snippet provided. 
-      // Keeping it if previously supported, otherwise can be removed if strictly following snippet.
       if (settings.model.includes('pro')) {
           input.size = settings.size || 'standard';
       }
@@ -140,11 +144,13 @@ export const generateVeoVideo = async (
       }
   }
 
-  const payload = {
+  const payload: any = {
       model: modelName,
-      input: input,
-      callBackUrl: "" // Optional but empty string is safer than undefined if API expects field
+      input: input
   };
+  
+  // Only add callBackUrl if needed/configured (avoid sending empty string)
+  // payload.callBackUrl = ""; 
 
   try {
     onStatusUpdate(`Requesting ${modelName}...`);
