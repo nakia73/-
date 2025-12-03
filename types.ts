@@ -11,7 +11,7 @@ export interface VideoSettings {
 }
 
 export interface PromptConfig {
-  language: 'ja' | 'en';
+  language: 'ja' | 'en' | 'ko' | 'zh-CN' | 'zh-TW' | 'none';
   enableText: boolean;
   audioMode: 'dialogue' | 'narration' | 'off';
   enableJsonTiming: boolean;

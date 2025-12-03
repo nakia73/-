@@ -117,11 +117,15 @@ const AdvancedSettingsPanel: React.FC<AdvancedSettingsPanelProps> = ({
           <label className="text-[10px] text-gray-500 block mb-1">{t.adv_lang}</label>
           <select 
             value={promptConfig.language}
-            onChange={(e) => setPromptConfig(c => ({ ...c, language: e.target.value as 'ja' | 'en' }))}
+            onChange={(e) => setPromptConfig(c => ({ ...c, language: e.target.value as any }))}
             className="w-full bg-black/40 border border-white/10 rounded p-1 text-xs text-white focus:border-secondary outline-none"
           >
+            <option value="none">{t.adv_lang_none}</option>
             <option value="ja">{t.adv_lang_ja}</option>
             <option value="en">{t.adv_lang_en}</option>
+            <option value="ko">{t.adv_lang_ko}</option>
+            <option value="zh-CN">{t.adv_lang_zh_cn}</option>
+            <option value="zh-TW">{t.adv_lang_zh_tw}</option>
           </select>
         </div>
         <div>

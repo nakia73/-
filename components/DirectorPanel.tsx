@@ -633,6 +633,7 @@ const DirectorPanel: React.FC<DirectorPanelProps> = ({
                         onClick={() => {
                             setShowConfirmation(false);
                             onExecuteBatch(directorScenes);
+                            setDirectorState('input');
                         }}
                         className="flex-1 py-3 bg-primary hover:bg-primaryHover text-black font-bold rounded-xl shadow-lg shadow-primary/20 transition-colors"
                     >

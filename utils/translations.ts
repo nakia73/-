@@ -82,9 +82,14 @@ export const translations = {
     adv_title_gen: "Prompt Creation", // For Text/Image Mode
     adv_title_director: "Detail Settings", // For Director Mode
     
-    adv_lang: "Language",
+    adv_lang: "Prompt Language",
     adv_lang_ja: "Japanese",
     adv_lang_en: "English",
+    adv_lang_ko: "Korean",
+    adv_lang_zh_cn: "Chinese (Simplified)",
+    adv_lang_zh_tw: "Chinese (Traditional)",
+    adv_lang_none: "None (Auto)",
+
     adv_text: "Overlay",
     adv_text_on: "On",
     adv_text_off: "Off",
@@ -315,9 +320,14 @@ export const translations = {
     adv_title_gen: "プロンプト作成", // Standard Mode
     adv_title_director: "詳細設定", // Director Mode
     
-    adv_lang: "言語",
+    adv_lang: "プロンプト言語",
     adv_lang_ja: "日本語",
     adv_lang_en: "英語",
+    adv_lang_ko: "韓国語",
+    adv_lang_zh_cn: "中国語 (簡体字)",
+    adv_lang_zh_tw: "中国語 (繁体字)",
+    adv_lang_none: "指定なし (自動)",
+
     adv_text: "テロップ",
     adv_text_on: "あり",
     adv_text_off: "なし",

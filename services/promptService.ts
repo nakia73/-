@@ -38,7 +38,7 @@ export const DEFAULT_BASE_SYSTEM_PROMPT = `あなたはSora 2の動画生成エ�
 export const SYSTEM_PROTOCOL_ENFORCEMENT = `
 ### CRITICAL SYSTEM PROTOCOL (OVERRIDE)
 You must strictly adhere to the following constraints provided in the [CONFIGURATION PARAMETERS] block:
-1. **Language**: Output MUST be in the language specified.
+1. **Language**: Output MUST be in the language specified in TARGET_LANGUAGE. If 'NO_ENFORCEMENT', you may choose.
 2. **JSON Format**: If TIMING_CONTROL is 'JSON_FORMAT', output valid JSON. If 'STANDARD_DESCRIPTIVE', output plain text.
 3. **Audio/Text**: Respect the audio and text overlay flags.
 
@@ -47,8 +47,18 @@ Output ONLY the final result. No markdown conversational filler.
 
 // Helper to construct the parameter block (Exported for Director Mode)
 export const constructParamBlock = (config: PromptConfig): string => {
+  let langStr = 'AUTO_DETECT (No specific enforcement)';
+  switch(config.language) {
+    case 'ja': langStr = 'Japanese (日本語)'; break;
+    case 'en': langStr = 'English (英語)'; break;
+    case 'ko': langStr = 'Korean (韓国語)'; break;
+    case 'zh-CN': langStr = 'Simplified Chinese (中国語 簡体字)'; break;
+    case 'zh-TW': langStr = 'Traditional Chinese (中国語 繁体字)'; break;
+    case 'none': langStr = 'NO_ENFORCEMENT (Allow mixed or any language)'; break;
+  }
+
   return [
-    `TARGET_LANGUAGE: ${config.language === 'ja' ? 'Japanese (日本語)' : 'English (英語)'}`,
+    `TARGET_LANGUAGE: ${langStr}`,
     `AUDIO_MODE: ${config.audioMode.toUpperCase()} (${config.audioMode === 'off' ? 'Silent video (No Sound)' : config.audioMode === 'dialogue' ? 'Include NATURAL SPOKEN DIALOGUE between characters' : 'Include PROFESSIONAL NARRATION/VOICEOVER'})`,
     `TEXT_OVERLAYS: ${config.enableText ? 'REQUIRED (Include visual text descriptions / Subtitles)' : 'FORBIDDEN (Clean feed, no text)'}`,
     `TIMING_CONTROL: ${config.enableJsonTiming ? 'JSON_FORMAT (Use explicit timing objects)' : 'STANDARD_DESCRIPTIVE'}`,
